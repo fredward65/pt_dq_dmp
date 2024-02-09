@@ -1,0 +1,11 @@
+moveit_setup_assistant_config:
+  URDF:
+    package: custom_ur5
+    relative_path: urdf/ur5_robot_arm.xacro
+    xacro_args: ""
+  SRDF:
+    relative_path: config/ur5_full_robot.srdf
+  CONFIG:
+    author_name: Freddy Liendo
+    author_email: liendomf@univ-smb.fr
+    generated_timestamp: 1695135963

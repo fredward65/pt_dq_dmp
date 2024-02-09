@@ -1,0 +1,29 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://wiki.ros.org/xacro" name="spoon">
+    <xacro:property name="spoon_mesh_col" value="package://custom_ur5/meshes/spoon_mesh.stl"/>
+    <xacro:property name="spoon_mesh_vis" value="package://custom_ur5/meshes/spoon_mesh.dae"/>
+
+    <!-- spoon -->
+    <link name="spoon">
+        <visual>
+            <origin xyz="0 0 0" rpy="0 0 0"/>
+            <geometry>
+                <mesh filename="${spoon_mesh_vis}"/>
+            </geometry>
+            <material name="spoon_blue">
+                <color rgba="0 0 0.8 1"/>
+            </material>
+        </visual>
+        <collision>
+            <origin xyz="0 0 0" rpy="0 0 0"/>
+            <geometry>
+                <mesh filename="${spoon_mesh_col}"/>
+            </geometry>
+        </collision>
+    </link>
+
+    <gazebo reference="spoon">
+        <material>Gazebo/BlueTransparent</material>
+    </gazebo>
+
+</robot>

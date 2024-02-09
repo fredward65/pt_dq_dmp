@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://wiki.ros.org/xacro" name="ur5_full_robot">
+  <!-- arm -->
+  <xacro:arg name="robot_model" default="ur5"/>
+  <xacro:arg name="joint_limit_params" default="$(find ur_description)/config/ur5/joint_limits.yaml"/>
+  <xacro:arg name="kinematics_params" default="$(find ur_description)/config/ur5/default_kinematics.yaml"/>
+  <xacro:arg name="physical_params" default="$(find ur_description)/config/ur5/physical_parameters.yaml"/>
+  <xacro:arg name="visual_params" default="$(find ur_description)/config/ur5/visual_parameters.yaml"/>
+  <xacro:include filename="$(find ur_gazebo)/urdf/ur.xacro"/>
+
+  <!-- spoon -->
+  <xacro:include filename="$(find custom_ur5)/urdf/spoon.xacro"/>
+
+  <!-- Couple tool to arm -->
+  <joint name="spoon_coupler_joint" type="fixed">
+    <origin xyz="0 0 0.01" rpy="0 0 0" />
+    <parent link="tool0"/>
+    <child link="spoon"/>
+  </joint>
+
+</robot>

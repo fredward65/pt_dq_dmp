@@ -1,0 +1,24 @@
+ {
+  "name": "noetic desktop-full",
+  "dockerFile": "Dockerfile",
+  "runArgs": [
+    "--privileged"//,"--network=host"
+  ],
+  "workspaceMount": "source=${localWorkspaceFolder}/src,target=/home/vscode/${localWorkspaceFolderBasename}/src,type=bind",
+  "workspaceFolder": "/home/vscode/${localWorkspaceFolderBasename}",
+  "mounts": [
+    "source=${localEnv:HOME}${localEnv:USERPROFILE}/.bash_history,target=/home/vscode/.bash_history,type=bind"
+  ],
+  "features": {"ghcr.io/devcontainers/features/desktop-lite:1": {}},
+  "forwardPorts": [6080, 5901],
+  "portsAttributes": {
+    "6080": {"label": "Desktop (Web)"},
+    "5901": {"label": "Desktop (VNC)"}
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": ["ms-python.python"]
+    }
+  },
+  "postCreateCommand": "bash -c \". $PWD/src/ws_setup.sh\""
+}
