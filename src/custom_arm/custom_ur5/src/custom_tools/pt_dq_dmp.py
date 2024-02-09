@@ -3,7 +3,7 @@ import numpy as np
 from dual_quaternions import DualQuaternion
 from pyquaternion import Quaternion
 from .math_tools import *
-from .math_tools.dq_tools import next_dq_from_twist, twist_from_dq_list
+from .math_tools.dq_tools import next_dq_from_twist, twist_from_dq_list, vel_from_twist
 from .projectile_launching import ProjectileLaunching
 
 
@@ -293,19 +293,25 @@ class PTDQDMP(DQDMP, ProjectileLaunching):
         """
         Projectile Throwing Dual Quaternion Dynamic Movement Primitives
         -----
+        ### Parameters
         @n: Number of Gaussian kernels to reconstruct the forcing term
         @alpha_y: Damping coefficient
         """
         super().__init__(n=n, alpha_y=alpha_y)
         ProjectileLaunching.__init__(self)
 
-    def correct_new_poses(self, p_t, v_g):
-        p_g = dq_log(self.dqgd).q_d
+    def adapt_poses(self, p_t:Quaternion) -> 'tuple(DualQuaternion, DualQuaternion, float)':
+        """
+        Adapt poses to throwing target
+        -----
+        ### Parameters
+        @p_t: Pure Quaternion target point
+        ### Returns
+        @(dqn0, dqng, tau): Adapted Dual Quaternion initial and goal poses, and time scaling factor tau
+        """
+        p_g = 2 * dq_log(self.dqgd).q_d
         
-        # tw_g = self.dqgd * self.twgd * self.dqgd.quaternion_conjugate()
-        # cross = lambda a, b: 0.5 * (a*b - b*a)
-        # v_g = self.twgd.q_d - cross(self.twgd.q_r, p_g)
-        # v_g =  vel_from_twist(dq_vec[-1], tw_vec[-1])
+        v_g = vel_from_twist(self.dqgd, self.dqgd * self.twgd * self.dqgd.quaternion_conjugate())
         
         n_z = Quaternion(vector=[0.0, 0.0, 1.0])
         n_g = (.5 * (v_g * n_z - n_z * v_g)).normalised
@@ -314,22 +320,33 @@ class PTDQDMP(DQDMP, ProjectileLaunching):
         # n_p = q_r.rotate(n_g)
         p_p = q_r.rotate(p_g)
 
-        t_f, v_0, p_ = self.optimal_v_launch(p_p, p_t)
+        _, v_0 = self.optimal_v_launch(p_p, p_t)
 
         q_v = quat_rot(q_r.conjugate.rotate(v_0), v_g)
 
         dq_off_0 = DualQuaternion.from_quat_pose_array(np.append(q_r.elements, [0, 0, 0]))
         dq_off_1 = DualQuaternion.from_quat_pose_array(np.append(q_v.elements, [0, 0, 0]))
-        
+
         dqn0, dqng = self.correct_poses(self.dq0d, self.dqgd, dq_off_0, dq_off_1)
-        tau = np.linalg.norm(v_g.elements) / np.linalg.norm(v_0.elements)
+        tau = v_g.norm / v_0.norm
 
         return dqn0, dqng, tau
 
-    def aim_model(self, p_t):
-        pass
+    def aim_model(self, t:np.ndarray, p_t:DualQuaternion) -> 'tuple[np.ndarray, np.ndarray]':
+        """
+        Aim DMP Model towards a Cartesian target
+        -----
+        ### Parameters
+        @t: Time vector to reconstruct the DMP model
+        @p_t: Pure Quaternion Cartesian target
+        ### Returns
+        @(dqn0, dqng): Reconstructed Dual Quaternion pose and Twist lists
+        """
+        tw_0 = DualQuaternion.from_dq_array(np.zeros(8))
+        dq_0, dq_g, tau = self.adapt_poses(p_t)
+        dq_rec, tw_rec = self.fit_model(t, dq_0, tw_0, dq_g, tau=tau)
+        return dq_rec, tw_rec
         
-
 
 def main():
     pass

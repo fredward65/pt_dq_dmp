@@ -31,7 +31,7 @@ class ArmManager(object):
         self.robot = moveit_commander.robot.RobotCommander()
         self.scene = moveit_commander.PlanningSceneInterface()
         self.arm_group = moveit_commander.move_group.MoveGroupCommander("ur5_arm")
-        self.arm_group.set_planner_id("ProjEST")  # LazyPRMstar  RRTstar PDST ProjEST
+        self.arm_group.set_planner_id("LazyPRMstar")  # LazyPRMstar  RRTstar PDST ProjEST
 
         p = PoseStamped()
         p.header.frame_id = self.robot.get_planning_frame()
@@ -54,7 +54,7 @@ class ArmManager(object):
         self.current_pose = None
         self.step = 0.05
 
-        self.frac_lim = .55
+        self.frac_lim = .25
 
         # Diagnostic publisher for waypoint poses
         # self.pose_pub = rospy.Publisher('/checker',PoseStamped,latch=True,queue_size=5)

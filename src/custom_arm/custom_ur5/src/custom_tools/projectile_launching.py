@@ -40,9 +40,9 @@ class ProjectileLaunching(object):
         d_p = p_t - p_0
         t_f = self.__optimal_t_impact(d_p)
         v_res = (1/t_f)*d_p - .5*t_f*self.ag
-        p_ = self.simulate_launch(t_f, v_res, p_0)
+        # p_ = self.simulate_launch(t_f, v_res, p_0)
         # print([t_f, v_res])
-        return t_f, v_res, p_
+        return t_f, v_res
 
     def simulate_launch(self, t_f, v_res, p_0):
         t_ = np.linspace(0, t_f, num=25)

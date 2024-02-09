@@ -81,7 +81,7 @@ def twist_from_dq_list(t, dq, mult=forward_mult):
     tw = np.append(tw, [tw[-1]])
     return tw
 
-def vel_from_twist(dq, tw, mult=forward_mult):
+def vel_from_twist(dq, tw):
     """
     Velocity Pure Quaternion from Twist and Pose
 
@@ -90,12 +90,11 @@ def vel_from_twist(dq, tw, mult=forward_mult):
     :return: Pure Quaternion Velocity
     :rtype: Quaternion
     """
-    p = dq_log(dq).q_d
-    omg = tw.q_r
-    elm = .5 * ((p * omg) - (omg * p))
-    # elm = (p * omg) - (p * omg).w
-    vel = tw.q_d - elm
-    return vel
+    w = tw.q_r
+    p = 2 * dq_log(dq).q_d
+    cross = lambda a, b: 0.5 * (a*b - b*a)
+    v = tw.q_d - cross(p, w)
+    return v
 
 
 def main():

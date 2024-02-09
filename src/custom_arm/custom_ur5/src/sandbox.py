@@ -30,36 +30,22 @@ def main():
     # q_0 = Quaternion(axis=[0, 1, 0], angle=-.25 * np.pi)
 
     # Generate movement data
-    t_vec, dq_vec = gen_movement(r=.35, n=1000)    # .35
-    p_0 = Quaternion(vector=[-.65, -.07, .45])      # -.35 .35 .45 
+    t_vec, dq_vec = gen_movement(r=.40, n=1000)    # .35
+    p_0 = Quaternion(vector=[-.65, -.05, .40])      # -.35 .35 .45 
     q_0 = Quaternion(axis=[0, 0, 1], angle=0.00 * np.pi)
     dq_0 = DualQuaternion.from_quat_pose_array(np.append(q_0.elements, p_0.elements[1:]))
     dq_vec = np.array([dq_0 * dq_i for dq_i in dq_vec], dtype=DualQuaternion)
-    p_r = Quaternion(axis=[0, 0, 1], angle=-0.75 * np.pi)
-    p_t = Quaternion(vector=[1.50, 0.00, 0.02])
+    p_r = Quaternion(axis=[0, 0, 1], angle=-1.00 * np.pi)
+    p_t = Quaternion(vector=[1.00, 0.00, 0.02])
     p_t = p_r.rotate(p_t)
 
     # DMP Model
     dmp_obj = PTDQDMP(n=100, alpha_y=20)
-    
     dmp_obj.train_model(t_vec, dq_vec)
 
-    # Projectile launching stuff
-    _, p_vec = dmp_obj.pose_from_dq(dq_vec)
-
-    # v_g =  vel_from_twist(dq_vec[-1], tw_vec[-1])
-    v_g = Quaternion(vector=dx_dt(t_vec, p_vec)[-1])
-
-    dq_0, dq_g, tau = dmp_obj.correct_new_poses(p_t, v_g)
-
-    t_rec = np.linspace(0, 3 * tau * t_vec[-1], num=500)
-    tw_0 = DualQuaternion.from_dq_array(np.zeros(8))
-    
-    dq_rec, tw_rec = dmp_obj.fit_model(t_rec, dq_0, tw_0, dq_g, tau=tau)
-    q_vec, p_vec = dmp_obj.pose_from_dq(dq_vec)
-    q_rec, p_rec = dmp_obj.pose_from_dq(dq_rec)
-    # p_f = Quaternion(vector=p_rec[-1])
-    # v_f = Quaternion(vector=dx_dt(t_rec, p_rec)[-1])
+    # Projectile launching
+    t_rec = np.linspace(0, t_vec[-1], num=300)
+    dq_rec, tw_rec = dmp_obj.aim_model(t_rec, p_t)
 
     # Instance Arm Manager
     p_offset = Quaternion(vector=[.0, .0, -.075])
@@ -68,10 +54,11 @@ def main():
     arm_mng = ArmManager(p_offset, q_offset)
     rospy.sleep(1)
 
+    # Plot movement data
+    q_vec, p_vec = dmp_obj.pose_from_dq(dq_vec)
+    q_rec, p_rec = dmp_obj.pose_from_dq(dq_rec)
     q_vc_, p_vc_ = dmp_obj.pose_from_dq(dq_vec * arm_mng.dq_offset)
     q_rc_, p_rc_ = dmp_obj.pose_from_dq(dq_rec * arm_mng.dq_offset)
-
-    # Plot movement data
     fig = plt.figure()
     ax_1 = fig.add_subplot(111, projection='3d')
     ax_1.plot(p_vec[:, 0], p_vec[:, 1], p_vec[:, 2], '--k')
@@ -85,6 +72,7 @@ def main():
     ax_1.set_proj_type('ortho')
     # plt.show()
 
+    # Execution preliminars
     t_scale = .25
     id_ = 1
     dq_t = DualQuaternion.from_quat_pose_array(np.append([1, 0, 0, 0], p_t.elements[1:]))

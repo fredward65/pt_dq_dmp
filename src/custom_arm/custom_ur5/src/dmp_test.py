@@ -3,7 +3,7 @@
 import numpy as np
 from custom_tools.math_tools import *
 from custom_tools.projectile_launching import gen_movement
-from custom_tools.pt_dq_dmp import DQDMP
+from custom_tools.pt_dq_dmp import PTDQDMP
 from dual_quaternions import DualQuaternion
 from matplotlib import pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
@@ -13,35 +13,40 @@ np.set_printoptions(precision=3, suppress=True)
 
 def main():
     # Generate movement data
-    t_vec, dq_vec = gen_movement(r=.40, n=100)
+    t_vec, dq_vec = gen_movement(r=.35, n=1000)    # .35
+    p_0 = Quaternion(vector=[-.65, -.07, .45])      # -.35 .35 .45 
+    q_0 = Quaternion(axis=[0, 0, 1], angle=0.00 * np.pi)
+    dq_0 = DualQuaternion.from_quat_pose_array(np.append(q_0.elements, p_0.elements[1:]))
+    dq_vec = np.array([dq_0 * dq_i for dq_i in dq_vec], dtype=DualQuaternion)
+    
+    p_r = Quaternion(axis=[0, 0, 1], angle=-0.75 * np.pi)
+    p_t = Quaternion(vector=[0.70, 0.00, 0.02])
+    p_t = p_r.rotate(p_t)
 
-    from custom_tools.math_tools.dq_tools import twist_from_dq_list, next_dq_from_twist
-
-    tau = 1
+    from custom_tools.math_tools.dq_tools import twist_from_dq_list
 
     tw_vec = twist_from_dq_list(t_vec, dq_vec)
 
     # DMP Model
-    dmp_obj = DQDMP(n=100, alpha_y=20)
+    dmp_obj = PTDQDMP(n=100, alpha_y=20)
     dmp_obj.train_model(t_vec, dq_vec)
 
-    fac = 5
-    t_rec = np.linspace(t_vec[0], fac*t_vec[-1], num=fac*t_vec.shape[0])
     dq_0, dq_g = [dq_vec[0], dq_vec[-1]]
     tw_0 = DualQuaternion.from_dq_array(np.zeros(8))
 
-    r_off = Quaternion(axis=[0, 1, 0], angle=0.0*np.pi) * \
-            Quaternion(axis=[0, 0, 1], angle=1.0*np.pi)
-    dq_off = DualQuaternion.from_quat_pose_array(np.append(r_off.elements, [0, 0, 0]))
-    dq_0 = dq_off * dq_0
-    dq_g = dq_off * dq_g
+    _, p_vec = PTDQDMP.pose_from_dq(dq_vec)
+
+    # dq_0, dq_g, tau = dmp_obj.correct_new_poses(p_t, v_g)
+    tau = 1
+    fac = 1
+    t_rec = np.linspace(t_vec[0], fac*t_vec[-1], num=fac*t_vec.shape[0])
 
     dq_rec, tw_rec = dmp_obj.fit_model(t_rec, dq_0, tw_0, dq_g, tau=tau)
 
     # Plot movement data
     plt.figure()
-    q_vec, p_vec = dmp_obj.pose_from_dq(dq_vec)
-    q_rec, p_rec = dmp_obj.pose_from_dq(dq_rec)
+    q_vec, p_vec = PTDQDMP.pose_from_dq(dq_vec)
+    q_rec, p_rec = PTDQDMP.pose_from_dq(dq_rec)
     plt.subplot(2, 2, 1)
     plt.hlines(p_vec[-1, :], 0, t_rec[-1], None, 'dotted')
     plt.plot(t_rec, p_rec)
@@ -70,6 +75,13 @@ def main():
     plt.plot(t_rec, tw_rec[:, 1:4])
     plt.plot(t_vec, tw_vec[:, 1:4], '--')
 
+    # plt.subplot(2, 2, 3)
+    # plt.plot(t_vec, v_alt)
+    # plt.plot(t_vec, v_vec, '--')
+    # plt.subplot(2, 2, 4)
+    # plt.plot(t_rec, tw_rec[:, 1:4])
+    # plt.plot(t_vec, tw_vec[:, 1:4], '--')
+
     fig = plt.figure()
     ax_1 = fig.add_subplot(projection='3d')
     ax_1.plot(p_vec[:, 0], p_vec[:, 1], p_vec[:, 2], '--k')
@@ -93,8 +105,8 @@ def main():
             ax_1.quiver(p_i.x, p_i.y, p_i.z, v_i.x, v_i.y, v_i.z, length=l_, color=[0,1,0])
             ax_1.quiver(p_i.x, p_i.y, p_i.z, w_i.x, w_i.y, w_i.z, length=l_, color=[0,0,1])
 
-    draw_axes(dq_vec[::5])
-    draw_axes(dq_rec[::5])
+    draw_axes(dq_vec[::100])
+    draw_axes(dq_rec[::100])
     
     plt.show()
 
@@ -144,7 +156,7 @@ def convergence_study():
         dq = dq_exp(0.5 * dt * dq * tw * dq.quaternion_conjugate()) * dq
         t_c += dt
 
-    r_rec, p_rec = DQDMP.pose_from_dq(dq_rec)
+    r_rec, p_rec = PTDQDMP.pose_from_dq(dq_rec)
     dq_rec = dql_to_npa(dq_rec)
     tw_rec = dql_to_npa(tw_rec)
     dtw_rec = dql_to_npa(dtw_rec)
