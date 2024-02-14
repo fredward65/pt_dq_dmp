@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import numpy as np
 from pyquaternion import Quaternion
@@ -86,14 +86,16 @@ def main():
     import matplotlib.pyplot as plt
     from mpl_toolkits.mplot3d import Axes3D
 
-    fig = plt.figure(1)
-    ax = fig.gca(projection='3d')
+    ax = plt.figure(1).add_subplot(projection='3d')
     fig, ax_ = plt.subplots(4, 3)
     [[axis.set_ylim(-15, 15) for axis in axes] for axes in ax_]
 
     ax.set_xlim3d(-2, 2)
     ax.set_ylim3d(-2, 2)
     ax.set_zlim3d(-2, 2)
+    ax.set_proj_type('ortho')
+    ax.view_init(elev=0, azim=0)
+
 
     r = 1
     n1 = 2
@@ -143,6 +145,7 @@ def main():
                 draw_rot(dy0, y0)
                 draw_rot(dyf, y[-1, :])
             draw_rot(k_, yf, l=.5, a=.5)
+    plt.tight_layout()
     plt.show()
 
 

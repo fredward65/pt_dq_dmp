@@ -300,7 +300,7 @@ class PTDQDMP(DQDMP, ProjectileLaunching):
         super().__init__(n=n, alpha_y=alpha_y)
         ProjectileLaunching.__init__(self)
 
-    def adapt_poses(self, p_t:Quaternion) -> 'tuple(DualQuaternion, DualQuaternion, float)':
+    def adapt_poses(self, p_t:Quaternion) -> 'tuple[DualQuaternion, DualQuaternion, float]':
         """
         Adapt poses to throwing target
         -----

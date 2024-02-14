@@ -33,8 +33,9 @@ RUN echo "source /opt/ros/${ROS_DISTRO}/setup.bash" >> ~/.bashrc
 # Install dependencies
 SHELL ["/bin/bash", "-c"]
 RUN sudo apt update \
-    && sudo apt install -y pip python3-tk \
+    && sudo apt install -y pip python3-tk texlive-latex-extra texlive-fonts-recommended dvipng cm-super \
     && pip install dual_quaternions \
+    && pip install matplotlib --upgrade \
     && sudo apt install -y \
     ros-$ROS_DISTRO-moveit \
     ros-$ROS_DISTRO-moveit-commander \

@@ -44,8 +44,8 @@ class ProjectileLaunching(object):
         # print([t_f, v_res])
         return t_f, v_res
 
-    def simulate_launch(self, t_f, v_res, p_0):
-        t_ = np.linspace(0, t_f, num=25)
+    def simulate_launch(self, t_f, v_res, p_0, num=100):
+        t_ = np.linspace(0, t_f, num=num)
         p_ = [p_0 + (t_i * v_res) + ((.5 * t_i ** 2) * self.ag) for t_i in t_]
         return p_
 

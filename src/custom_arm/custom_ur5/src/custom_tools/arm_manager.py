@@ -15,7 +15,7 @@ from pyquaternion import Quaternion
 
 
 class ArmManager(object):
-    def __init__(self, p_offset=np.array([.0, .0, .0]), q_offset=Quaternion([1, 0, 0, 0])):
+    def __init__(self, p_offset=Quaternion(np.zeros(4)), q_offset=Quaternion([1, 0, 0, 0]), planner:str='ProjEST'):
         """
         Arm Manager Constructor
         """
@@ -31,7 +31,7 @@ class ArmManager(object):
         self.robot = moveit_commander.robot.RobotCommander()
         self.scene = moveit_commander.PlanningSceneInterface()
         self.arm_group = moveit_commander.move_group.MoveGroupCommander("ur5_arm")
-        self.arm_group.set_planner_id("LazyPRMstar")  # LazyPRMstar  RRTstar PDST ProjEST
+        self.arm_group.set_planner_id(planner)  # LazyPRMstar  RRTstar PDST ProjEST
 
         p = PoseStamped()
         p.header.frame_id = self.robot.get_planning_frame()
@@ -85,6 +85,7 @@ class ArmManager(object):
         success = group.execute(plan, wait=True)
         group.stop()
         group.clear_pose_targets()
+        return success
 
     @staticmethod
     def pose_from_dq(dq):
@@ -108,7 +109,7 @@ class ArmManager(object):
         pose.position.z = pos[2]
         return pose
 
-    def move_pose(self, dq, t_scale=1.0):
+    def move_pose(self, dq:DualQuaternion, t_scale:float=1.0):
         """
         Move TCP to given pose via Inverse Kinematics (IK)
 
@@ -193,8 +194,10 @@ class ArmManager(object):
 
     def follow_waypoints(self, dq_list, t_vec):
         plan, fraction = self.plan_waypoints(dq_list, t_vec)
+        success = None
         if fraction > self.frac_lim:
-            self.execute_group_plan(self.arm_group, plan)
+            success = self.execute_group_plan(self.arm_group, plan)
+        return success
 
     def try_launch(self, dq_traj, t_vec, id_=0):
         dq_0 = dq_traj[0]
@@ -244,6 +247,9 @@ class ArmManager(object):
             resp_urdf = spawn_urdf(self.current_object, block_xml, "/", pose, reference_frame)
         except rospy.ServiceException as e:
             rospy.logerr("Spawn URDF service call failed: {0}".format(e))
+
+    def get_ball_position(self, id_=0):
+        return self.get_gazebo_object_pose("ball_%i" % id_).position
 
     @staticmethod
     def get_gazebo_object_pose(obj_name):

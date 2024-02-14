@@ -5,16 +5,17 @@ from custom_tools.math_tools import *
 from custom_tools.projectile_launching import gen_movement
 from custom_tools.pt_dq_dmp import PTDQDMP
 from dual_quaternions import DualQuaternion
-from matplotlib import pyplot as plt
+from matplotlib import pyplot as plt, ticker as tkr
 from mpl_toolkits.mplot3d import Axes3D
 from pyquaternion import Quaternion
 
 np.set_printoptions(precision=3, suppress=True)
+plt.rcParams.update({"text.usetex": True})
 
 def main():
     # Generate movement data
-    t_vec, dq_vec = gen_movement(r=.35, n=1000)    # .35
-    p_0 = Quaternion(vector=[-.65, -.07, .45])      # -.35 .35 .45 
+    t_vec, dq_vec = gen_movement(r=.40, n=1000)    # .35
+    p_0 = Quaternion(vector=[-.65, -.05, .40])      # -.35 .35 .45 
     q_0 = Quaternion(axis=[0, 0, 1], angle=0.00 * np.pi)
     dq_0 = DualQuaternion.from_quat_pose_array(np.append(q_0.elements, p_0.elements[1:]))
     dq_vec = np.array([dq_0 * dq_i for dq_i in dq_vec], dtype=DualQuaternion)
@@ -39,74 +40,87 @@ def main():
     # dq_0, dq_g, tau = dmp_obj.correct_new_poses(p_t, v_g)
     tau = 1
     fac = 1
-    t_rec = np.linspace(t_vec[0], fac*t_vec[-1], num=fac*t_vec.shape[0])
+    t_rec = np.linspace(t_vec[0], 2*fac*t_vec[-1], num=fac*t_vec.shape[0])
 
     dq_rec, tw_rec = dmp_obj.fit_model(t_rec, dq_0, tw_0, dq_g, tau=tau)
 
     # Plot movement data
     plt.figure()
-    q_vec, p_vec = PTDQDMP.pose_from_dq(dq_vec)
-    q_rec, p_rec = PTDQDMP.pose_from_dq(dq_rec)
-    plt.subplot(2, 2, 1)
-    plt.hlines(p_vec[-1, :], 0, t_rec[-1], None, 'dotted')
-    plt.plot(t_rec, p_rec)
-    plt.plot(t_vec, p_vec, '--')
-    plt.subplot(2, 2, 2)
-    plt.hlines(q_vec[-1, :], 0, t_rec[-1], None, 'dotted')
-    plt.plot(t_rec, q_rec)
-    plt.plot(t_vec, q_vec, '--')
-    
-    dq_vec = dql_to_npa(dq_vec)
-    dq_rec = dql_to_npa(dq_rec)
-    plt.subplot(2, 2, 3)
-    plt.plot(t_rec, dq_rec[:, 4: ])
-    plt.plot(t_vec, dq_vec[:, 4: ], '--')
-    plt.subplot(2, 2, 4)
-    plt.plot(t_rec, dq_rec[:, 0:4])
-    plt.plot(t_vec, dq_vec[:, 0:4], '--')
+    dq_vec_npa = dql_to_npa(dq_vec)
+    dq_rec_npa = dql_to_npa(dq_rec)
+    min_lim = np.min([dq_vec_npa, dq_rec_npa]) * 1.125
+    max_lim = np.max([dq_vec_npa, dq_rec_npa]) * 1.125
+    txt_var = ["w", "x", "y", "z"]
+    for i in range(4):
+        label = txt_var[i] 
+        evn = 2 * (1 + i % 4)
+        plt.subplot(4, 2, evn - 1)
+        plt.plot(t_rec, dq_rec_npa[:, i])
+        plt.plot(t_vec, dq_vec_npa[:, i], '--k')
+        plt.ylim(min_lim, max_lim)
+        plt.ylabel(r"$\mathrm{q}_{r_%s}$" % label)
+        if (i == 3):
+            plt.xlabel("$t$")
+        else:
+            plt.xticks([])
+        plt.subplot(4, 2, evn)
+        plt.plot(t_rec, dq_rec_npa[:, i + 4], label=r"$\underbar{q}_{n}$")
+        plt.plot(t_vec, dq_vec_npa[:, i + 4], '--k', label=r"$\underbar{q}_{d}$")
+        plt.ylim(min_lim, max_lim)
+        plt.ylabel(r"$\mathrm{q}_{t_%s}$" % label)
+        plt.yticks([])
+        if (i == 3):
+            plt.xlabel("$t$")
+            plt.legend()
+        else:
+            plt.xticks([])
+    plt.tight_layout(pad=1.0)
 
-    plt.figure()
-    tw_vec = dql_to_npa(tw_vec)
-    tw_rec = dql_to_npa(tw_rec)
-    plt.subplot(2, 2, 1)
-    plt.plot(t_rec, tw_rec[:, 5: ])
-    plt.plot(t_vec, tw_vec[:, 5: ], '--')
-    plt.subplot(2, 2, 2)
-    plt.plot(t_rec, tw_rec[:, 1:4])
-    plt.plot(t_vec, tw_vec[:, 1:4], '--')
+    # plt.figure()
+    # q_vec, p_vec = PTDQDMP.pose_from_dq(dq_vec)
+    # q_rec, p_rec = PTDQDMP.pose_from_dq(dq_rec)
+    # plt.subplot(2, 1, 1)
+    # plt.hlines(p_vec[-1, :], 0, t_rec[-1], None, 'dotted')
+    # plt.plot(t_rec, p_rec)
+    # plt.plot(t_vec, p_vec, '--')
+    # plt.subplot(2, 1, 2)
+    # plt.hlines(q_vec[-1, :], 0, t_rec[-1], None, 'dotted')
+    # plt.plot(t_rec, q_rec)
+    # plt.plot(t_vec, q_vec, '--')
 
-    # plt.subplot(2, 2, 3)
-    # plt.plot(t_vec, v_alt)
-    # plt.plot(t_vec, v_vec, '--')
-    # plt.subplot(2, 2, 4)
+    # plt.figure()
+    # tw_vec = dql_to_npa(tw_vec)
+    # tw_rec = dql_to_npa(tw_rec)
+    # plt.subplot(2, 2, 1)
+    # plt.plot(t_rec, tw_rec[:, 5: ])
+    # plt.plot(t_vec, tw_vec[:, 5: ], '--')
+    # plt.subplot(2, 2, 2)
     # plt.plot(t_rec, tw_rec[:, 1:4])
     # plt.plot(t_vec, tw_vec[:, 1:4], '--')
 
-    fig = plt.figure()
-    ax_1 = fig.add_subplot(projection='3d')
-    ax_1.plot(p_vec[:, 0], p_vec[:, 1], p_vec[:, 2], '--k')
-    ax_1.plot(p_rec[:, 0], p_rec[:, 1], p_rec[:, 2], 'b')
-    ax_1.axes.set_xlim3d(left=-0.5, right=1.0)
-    ax_1.axes.set_ylim3d(bottom=-0.5, top=1.0)
-    ax_1.axes.set_zlim3d(bottom=0., top=1.5)
-    ax_1.set_proj_type('ortho')
+    # fig = plt.figure()
+    # ax_1 = fig.add_subplot(projection='3d')
+    # ax_1.plot(p_vec[:, 0], p_vec[:, 1], p_vec[:, 2], '--k')
+    # ax_1.plot(p_rec[:, 0], p_rec[:, 1], p_rec[:, 2], 'b')
+    # ax_1.axes.set_xlim3d(left=-0.5, right=1.0)
+    # ax_1.axes.set_ylim3d(bottom=-0.5, top=1.0)
+    # ax_1.axes.set_zlim3d(bottom=0., top=1.5)
+    # ax_1.set_proj_type('ortho')
 
-    dq_vec = npa_to_dql(dq_vec)
-    dq_rec = npa_to_dql(dq_rec)
-    def draw_axes(dq_list):
-        l_ = .05
-        for dq_i in dq_list:
-            r_i = dq_i.q_r
-            p_i = 2 * dq_log(dq_i).q_d
-            u_i = r_i.rotate(Quaternion(vector=[1, 0, 0]))
-            v_i = r_i.rotate(Quaternion(vector=[0, 1, 0]))
-            w_i = r_i.rotate(Quaternion(vector=[0, 0, 1]))
-            ax_1.quiver(p_i.x, p_i.y, p_i.z, u_i.x, u_i.y, u_i.z, length=l_, color=[1,0,0])
-            ax_1.quiver(p_i.x, p_i.y, p_i.z, v_i.x, v_i.y, v_i.z, length=l_, color=[0,1,0])
-            ax_1.quiver(p_i.x, p_i.y, p_i.z, w_i.x, w_i.y, w_i.z, length=l_, color=[0,0,1])
+    # def draw_axes(dq_list):
+    #     l_ = .05
+    #     for dq_i in dq_list:
+    #         r_i = dq_i.q_r
+    #         p_i = 2 * dq_log(dq_i).q_d
+    #         u_i = r_i.rotate(Quaternion(vector=[1, 0, 0]))
+    #         v_i = r_i.rotate(Quaternion(vector=[0, 1, 0]))
+    #         w_i = r_i.rotate(Quaternion(vector=[0, 0, 1]))
+    #         ax_1.quiver(p_i.x, p_i.y, p_i.z, u_i.x, u_i.y, u_i.z, length=l_, color=[1,0,0])
+    #         ax_1.quiver(p_i.x, p_i.y, p_i.z, v_i.x, v_i.y, v_i.z, length=l_, color=[0,1,0])
+    #         ax_1.quiver(p_i.x, p_i.y, p_i.z, w_i.x, w_i.y, w_i.z, length=l_, color=[0,0,1])
 
-    draw_axes(dq_vec[::100])
-    draw_axes(dq_rec[::100])
+    # draw_axes(dq_vec[::100])
+    # draw_axes(dq_rec[::100])
     
     plt.show()
 
@@ -233,28 +247,29 @@ def figure():
     dq0 = DualQuaternion.from_quat_pose_array(np.append(r_0.elements, p_0.elements[1:]))
     
     p_1 = Quaternion(vector=[0.5, 0.0, 0])
-    r_1 = Quaternion(axis=[0, 0, 1], angle=0.25*np.pi)
+    r_1 = Quaternion(axis=[0, 0, 1], angle=0.33*np.pi)
     dq1 = DualQuaternion.from_quat_pose_array(np.append(r_1.elements, p_1.elements[1:]))
     
     p_2 = Quaternion(vector=[1.0, 0.5, 0])
-    r_2 = Quaternion(axis=[0, 0, 1], angle=0.33*np.pi)
+    r_2 = Quaternion(axis=[0, 0, 1], angle=0.50*np.pi)
     dq2 = DualQuaternion.from_quat_pose_array(np.append(r_2.elements, p_2.elements[1:]))
     
-    eqf = dq2 * dq1.quaternion_conjugate()
     eqb = dq1.quaternion_conjugate() * dq2
     
-    ax = plt.figure().add_subplot(projection='3d')
+    ax = plt.figure(figsize=(4,4)).add_subplot(projection='3d')
     ax.view_init(elev=90, azim=-180)
 
-    def draw_axes(dqi, color=None):
+    def draw_axes(dqi, color=None, txt=""):
         if not color:
             c1 = [1,0,0]
             c2 = [0,1,0]
             c3 = [0,0,1]
+            ct = [0,0,0]
         else:
             c1 = color
             c2 = color
             c3 = color
+            ct = color
         r_i = dqi.q_r
         log = 2 * dq_log(dqi)
         p_i = log.q_d
@@ -264,17 +279,25 @@ def figure():
         ax.quiver(p_i.x, p_i.y, p_i.z, u_i.x, u_i.y, u_i.z, length=.25, color=c1)
         ax.quiver(p_i.x, p_i.y, p_i.z, v_i.x, v_i.y, v_i.z, length=.25, color=c2)
         ax.quiver(p_i.x, p_i.y, p_i.z, w_i.x, w_i.y, w_i.z, length=.25, color=c3)
+        ax.text(p_i.x, p_i.y, p_i.z, txt, "y", c=ct, va="top")
     
-    draw_axes(dq0, [0, 0, 0])
-    draw_axes(dq1)
-    draw_axes(dq2)
-    draw_axes(eqf, [1, 0, 1])
-    draw_axes(eqb, [0, 1, 1])
+    draw_axes(dq0, [0, 0, 0], txt=r'$\underbar{q}_0$')
+    draw_axes(dq1, txt=r'$\underbar{q}_0^1$')
+    draw_axes(dq2, txt=r'$\underbar{q}_0^2$')
+    draw_axes(eqb, [1, 0, 1], txt=r'$\underbar{q}_1^2$')
 
-    ax.axes.set_xlim3d(left=-2, right=2)
-    ax.axes.set_ylim3d(bottom=-2, top=2)
-    ax.axes.set_zlim3d(bottom=-2, top=2)
+    ax.axes.set_xlim3d(left=-0.5, right=1.5)
+    ax.axes.set_ylim3d(bottom=-1.0, top=1.0)
+    ax.axes.set_zlim3d(bottom=-0.5, top=0.5)
     ax.set_proj_type('ortho')
+
+    ax.xaxis.set_major_locator(tkr.MultipleLocator(0.5))
+    ax.yaxis.set_major_locator(tkr.MultipleLocator(0.5))
+    ax.set_xlabel("$x$", loc="left")
+    ax.set_ylabel("$y$", loc="bottom")
+    ax.set_zticks([])
+
+    plt.tight_layout()
     plt.show()
 
 
