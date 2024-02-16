@@ -4,13 +4,9 @@ import numpy as np
 import rospy
 import time
 from custom_tools.arm_manager import ArmManager
-from custom_tools.math_tools import dx_dt, quat_rot
-from custom_tools.math_tools.dq_tools import dq_log
-from custom_tools.projectile_launching import gen_movement, ProjectileLaunching
-from custom_tools.pt_dq_dmp import DQDMP, PTDQDMP
+from custom_tools.projectile_launching import gen_movement
+from custom_tools.pt_dq_dmp import PTDQDMP
 from dual_quaternions import DualQuaternion
-from matplotlib import pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
 from pyquaternion import Quaternion
 from rospkg import RosPack
 
@@ -57,23 +53,6 @@ def main():
                Quaternion(axis=[0, 0, 1], angle= .5 * np.pi)
     arm_mng = ArmManager(p_offset, q_offset, "ProjEST")
     rospy.sleep(1)
-
-    # Plot movement data
-    # q_vec, p_vec = dmp_obj.pose_from_dq(dq_vec)
-    # q_rec, p_rec = dmp_obj.pose_from_dq(dq_rec)
-    # q_vc_, p_vc_ = dmp_obj.pose_from_dq(dq_vec * arm_mng.dq_offset)
-    # q_rc_, p_rc_ = dmp_obj.pose_from_dq(dq_rec * arm_mng.dq_offset)
-    # fig = plt.figure()
-    # ax_1 = fig.add_subplot(111, projection='3d')
-    # ax_1.plot(p_vec[:, 0], p_vec[:, 1], p_vec[:, 2], '--k')
-    # ax_1.plot(p_rec[:, 0], p_rec[:, 1], p_rec[:, 2], 'b')
-    # ax_1.plot(p_vc_[:, 0], p_vc_[:, 1], p_vc_[:, 2], '--k')
-    # ax_1.plot(p_rc_[:, 0], p_rc_[:, 1], p_rc_[:, 2], 'b')
-    # ax_1.axes.set_xlim3d(left=-0.5, right=1.0)
-    # ax_1.axes.set_ylim3d(bottom=-0.5, top=1.0)
-    # ax_1.axes.set_zlim3d(bottom=0., top=1.5)
-    # ax_1.set_proj_type('ortho')
-    # plt.show()
 
     # Execution preliminars
     t_scale = .25

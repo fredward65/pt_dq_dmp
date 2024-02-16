@@ -79,6 +79,9 @@ class ArmManager(object):
 
     @staticmethod
     def execute_group_plan(group, plan):
+        """
+        Execute plan using MoveIt! group
+        """
         # success = None
         # while not success:
         group.set_goal_joint_tolerance(0.05)

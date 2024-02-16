@@ -39,6 +39,33 @@ def dq_log(dq):
     log.q_d = 1 * dq.q_d * dq.q_r.inverse
     return log
 
+
+def edq_from_dq(pdq, cdq):
+    """
+    Dual Quaternion Pose Error
+    
+    :param DualQuaternion dq: Previous Pose
+    :param DualQuaternion dqg: Current Pose
+    :return: Dual Quaternion Pose Error
+    :rtype: DualQuaternion
+    """
+    return 2 * dq_log(pdq.quaternion_conjugate() * cdq)
+
+
+def edq_from_dq_list(dq_list:np.ndarray) -> np.ndarray:
+    """
+    Dual Quaternion Error w.r.t. Goal from Dual Quaternion List
+    -----
+    ### Parameters
+    @dq_list: Dual Quaternion Pose List
+    ### Returns
+    @edq: Dual Quaternion Pose Error List
+    """
+    dqg = dq_list[-1]
+    edq = np.array([edq_from_dq(dq_i, dqg) for dq_i in dq_list], dtype=DualQuaternion)
+    return edq
+
+
 def next_dq_from_twist(dt, dq, tw, mult=forward_mult):
     """
     Next Dual Quaternion Pose from Current Pose, Current Twist, and Timestep
@@ -95,6 +122,41 @@ def vel_from_twist(dq, tw):
     cross = lambda a, b: 0.5 * (a*b - b*a)
     v = tw.q_d - cross(p, w)
     return v
+
+
+def dq_from_pose(r:np.ndarray, p:np.ndarray) -> np.ndarray:
+    """
+    Dual Quaternion list from Pose Data
+    -----
+    ### Parameters
+    @r: Quaternion parameters Orientation List (w, x, y, z)
+    @p: Cartesian Position List (x, y, z)
+    ### Returns
+    @dq: Dual Quaternion list
+    """
+    dq =  np.empty(r.shape[0], dtype=DualQuaternion)
+    for i, (ri, pi) in enumerate(zip(r, p)):
+        dq[i] = DualQuaternion.from_quat_pose_array(np.append(ri, pi))
+    return dq
+
+
+def pose_from_dq(dq:np.ndarray) -> "tuple[np.ndarray, np.ndarray]":
+    """
+    Pose Data from Dual Quaternion list
+    -----
+    ### Parameters
+    @dq: Dual Quaternion List
+    ### Returns
+    @(r, p): Orientation (w, x, y, z) and Position (x, y, z) vector arrays
+    """
+    r, p = [], []
+    for dqi in dq:
+        pt = dqi.quat_pose_array()
+        r.append(pt[0:4])
+        p.append(pt[4:7])
+    r = np.array(r).reshape((-1, 4))
+    p = np.array(p).reshape((-1, 3))
+    return r, p
 
 
 def main():

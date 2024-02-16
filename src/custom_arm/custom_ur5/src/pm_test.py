@@ -3,7 +3,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 from dual_quaternions import DualQuaternion
-from custom_tools.math_tools import dq_log, dx_dt, quat_rot
+from custom_tools.math_tools import *
 from custom_tools.math_tools.dq_tools import twist_from_dq_list, vel_from_twist
 from custom_tools.pt_dq_dmp import PTDQDMP
 from custom_tools.projectile_launching import gen_movement, ProjectileLaunching
@@ -52,7 +52,7 @@ def main():
     p_l_obj = ProjectileLaunching()
 
     dmp_obj = PTDQDMP(n=100, alpha_y=20)
-    _, p_vec = dmp_obj.pose_from_dq(dq_vec)
+    _, p_vec = pose_from_dq(dq_vec)
     dmp_obj.train_model(t_vec, dq_vec)
 
     # Projectile launching
@@ -84,7 +84,7 @@ def main():
     
     dq_rec, tw_rec = dmp_obj.fit_model(t_rec, dq_0, tw_0, dq_g, tau=tau)
     
-    _, p_rec = dmp_obj.pose_from_dq(dq_rec)
+    _, p_rec = pose_from_dq(dq_rec)
     dq_f = dq_rec[-1]
     tw_f = tw_rec[-1]
     p_f = 2 * dq_log(dq_f).q_d

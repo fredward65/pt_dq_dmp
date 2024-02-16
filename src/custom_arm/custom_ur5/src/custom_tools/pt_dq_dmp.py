@@ -3,7 +3,7 @@ import numpy as np
 from dual_quaternions import DualQuaternion
 from pyquaternion import Quaternion
 from .math_tools import *
-from .math_tools.dq_tools import next_dq_from_twist, twist_from_dq_list, vel_from_twist
+from .math_tools.dq_tools import next_dq_from_twist, twist_from_dq_list, vel_from_twist, edq_from_dq, edq_from_dq_list
 from .projectile_launching import ProjectileLaunching
 
 
@@ -38,32 +38,6 @@ class DQDMP(object):
         self.twgd = np.nan
 
     @staticmethod
-    def __edq_from_dq(pdq, cdq):
-        """
-        Dual Quaternion Pose Error
-        
-        :param DualQuaternion dq: Previous Pose
-        :param DualQuaternion dqg: Current Pose
-        :return: Dual Quaternion Pose Error
-        :rtype: DualQuaternion
-        """
-        return 2 * dq_log(pdq.quaternion_conjugate() * cdq)
-
-    @staticmethod
-    def __edq_from_dq_list(dq_list:np.ndarray) -> np.ndarray:
-        """
-        Dual Quaternion Error w.r.t. Goal from Dual Quaternion List
-        -----
-        ### Parameters
-        @dq_list: Dual Quaternion Pose List
-        ### Returns
-        @edq: Dual Quaternion Pose Error List
-        """
-        dqg = dq_list[-1]
-        edq = np.array([DQDMP.__edq_from_dq(dq_i, dqg) for dq_i in dq_list], dtype=DualQuaternion)
-        return edq
-
-    @staticmethod
     def __fn_rct(x:np.ndarray, psi:np.ndarray, w:np.ndarray) -> DualQuaternion:
         """
         Forcing term reconstruction function
@@ -77,41 +51,6 @@ class DQDMP(object):
         """
         fn = DualQuaternion.from_dq_array(((x * np.inner(psi, w)) / np.sum(psi, 1)).ravel())
         return fn
-
-    @staticmethod
-    def dq_from_pose(r:np.ndarray, p:np.ndarray) -> np.ndarray:
-        """
-        Dual Quaternion list from Pose Data
-        -----
-        ### Parameters
-        @r: Quaternion parameters Orientation List (w, x, y, z)
-        @p: Cartesian Position List (x, y, z)
-        ### Returns
-        @dq: Dual Quaternion list
-        """
-        dq =  np.empty(r.shape[0], dtype=DualQuaternion)
-        for i, (ri, pi) in enumerate(zip(r, p)):
-            dq[i] = DualQuaternion.from_quat_pose_array(np.append(ri, pi))
-        return dq
-
-    @staticmethod
-    def pose_from_dq(dq:np.ndarray) -> "tuple[np.ndarray, np.ndarray]":
-        """
-        Pose Data from Dual Quaternion list
-        -----
-        ### Parameters
-        @dq: Dual Quaternion List
-        ### Returns
-        @(r, p): Orientation (w, x, y, z) and Position (x, y, z) vector arrays
-        """
-        r, p = [], []
-        for dqi in dq:
-            pt = dqi.quat_pose_array()
-            r.append(pt[0:4])
-            p.append(pt[4:7])
-        r = np.array(r).reshape((-1, 4))
-        p = np.array(p).reshape((-1, 3))
-        return r, p
 
     def __fit_dtw(self, tw:DualQuaternion, edq:DualQuaternion, fn:DualQuaternion) -> DualQuaternion:
         """
@@ -216,7 +155,7 @@ class DQDMP(object):
         # Compute Canonical system and Gaussian kernels
         x, psi_i = self.__can_sys(t)
         # Time derivatives from q
-        edq = self.__edq_from_dq_list(dq)
+        edq = edq_from_dq_list(dq)
         tw = twist_from_dq_list(t, dq)
         dtw = dx_dt(t, tw)
         # Store training initial and goal conditions
@@ -250,7 +189,7 @@ class DQDMP(object):
         # Reconstruct forcing term
         fn = self.__fn_rct(x, psi_i, self.w_i)
         # Reconstruct pose
-        edq = self.__edq_from_dq(dq, dqg)
+        edq = edq_from_dq(dq, dqg)
         dtw = (1 / tau) * self.__fit_dtw(tau * tw, edq, fn)
         tw_n = tw + ((dt / tau) * dtw)
         dq_n = next_dq_from_twist(dt, dq, tw_n)

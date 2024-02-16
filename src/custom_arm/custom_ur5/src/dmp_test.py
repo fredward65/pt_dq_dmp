@@ -35,7 +35,7 @@ def main():
     dq_0, dq_g = [dq_vec[0], dq_vec[-1]]
     tw_0 = DualQuaternion.from_dq_array(np.zeros(8))
 
-    _, p_vec = PTDQDMP.pose_from_dq(dq_vec)
+    _, p_vec = pose_from_dq(dq_vec)
 
     # dq_0, dq_g, tau = dmp_obj.correct_new_poses(p_t, v_g)
     tau = 1
@@ -77,8 +77,8 @@ def main():
     plt.tight_layout(pad=1.0)
 
     # plt.figure()
-    # q_vec, p_vec = PTDQDMP.pose_from_dq(dq_vec)
-    # q_rec, p_rec = PTDQDMP.pose_from_dq(dq_rec)
+    # q_vec, p_vec = pose_from_dq(dq_vec)
+    # q_rec, p_rec = pose_from_dq(dq_rec)
     # plt.subplot(2, 1, 1)
     # plt.hlines(p_vec[-1, :], 0, t_rec[-1], None, 'dotted')
     # plt.plot(t_rec, p_rec)
@@ -170,7 +170,7 @@ def convergence_study():
         dq = dq_exp(0.5 * dt * dq * tw * dq.quaternion_conjugate()) * dq
         t_c += dt
 
-    r_rec, p_rec = PTDQDMP.pose_from_dq(dq_rec)
+    r_rec, p_rec = pose_from_dq(dq_rec)
     dq_rec = dql_to_npa(dq_rec)
     tw_rec = dql_to_npa(tw_rec)
     dtw_rec = dql_to_npa(dtw_rec)

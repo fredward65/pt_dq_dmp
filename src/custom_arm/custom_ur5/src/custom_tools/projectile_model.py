@@ -100,13 +100,13 @@ def main():
 
         if not np.isnan(t_f): 
             col = hsv_to_rgb((0.25 + np.abs(angle)/np.pi, 1, 1))
-            p, t = pm.evaluate(p_0, n=200)
+            p, t = pm.evaluate(p_0, n=100)
             txt = r"$\|\dot{\mathrm{p}}_0\|$ : %5.3f $m/s$" % dp_0.norm
             ax.plot([p_i.x for p_i in p], [p_i.y for p_i in p], [p_i.z for p_i in p], label=txt, color=col)
             ax.quiver(p_0.x, p_0.y, p_0.z, dp_0.x, dp_0.y, dp_0.z, length=.05, color=col)
             ax.quiver(p_f.x, p_f.y, p_f.z, n_c.x, n_c.y, n_c.z, length=.1, color=col)
 
-    plt.legend(loc="center", ncol=1, bbox_to_anchor=(1.0,0.5))
+    plt.legend(loc="center", ncol=1, bbox_to_anchor=(1.0, 0.5))
     plt.tight_layout()
     plt.show()
 
