@@ -64,7 +64,8 @@ def quat_rot(a:Quat, b:Quat) -> Quat:
     ### Returns
     @q: Quaternion Rotation from a to b
     """
-    q = ((a * b).norm - (a * b).conjugate).normalised
+    axb = a * b
+    q = (axb.norm - axb.conjugate).normalised
     return q
 
 

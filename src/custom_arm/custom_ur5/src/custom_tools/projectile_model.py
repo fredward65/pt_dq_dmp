@@ -2,149 +2,111 @@
 
 import numpy as np
 from pyquaternion import Quaternion
-from dual_quaternions import DualQuaternion
-from math_tools import dx_dt, q_rot_from_vec, quat_rot
+from math_tools import quat_rot
 
 
 class ProjectileModel(object):
     def __init__(self):
-        self.g = -9.80665
-        self.tf = 0
-        self.dy0 = np.zeros(3)
-        self.k = np.zeros(3)
+        self.a_g = -9.80665
+        self.t_f = 0
+        self.dp_0 = Quaternion(vector=np.zeros(3))
+        self.n_f = Quaternion(vector=np.zeros(3))
         # Condition Estimator Model
-        self.dz0_eq = lambda tf, z0, z: -(((self.g * tf**2) / 2) - z + z0)/tf
-        self.dx0_eq = lambda tf, dz0, ik: (self.k[ik] / self.k[2]) * (dz0 + self.g * tf)
+        self.dz0_eq = lambda t_f, z_0, z_f: -(((self.a_g * t_f**2) / 2) - z_f + z_0)/t_f
+        self.dx0_eq = lambda t_f, dz_0: (self.n_f.x / self.n_f.z) * (dz_0 + self.a_g * t_f)
+        self.dy0_eq = lambda t_f, dz_0: (self.n_f.y / self.n_f.z) * (dz_0 + self.a_g * t_f)
         # Trivial Kinetic Model
-        self.x_eq = lambda t, x0, dx0: dx0 * t + x0
-        self.z_eq = lambda t, z0, dz0: .5 * self.g * t**2 + dz0 * t + z0
+        self.x_eq = lambda t, x_0, dx_0: dx_0 * t + x_0
+        self.z_eq = lambda t, z_0, dz_0: .5 * self.a_g * t**2 + dz_0 * t + z_0
 
-    def tf_eq(self, delta_y):
-        kz = self.k[2]
-        ak = (kz**2 - 1)
-        num = - 2 * (ak * delta_y[2] + kz * np.sqrt(-1 *  ak * (delta_y[0]**2 + delta_y[1]**2)))
-        den = self.g * ak
-        np.seterr(invalid='raise')
+    def t_f_compute(self, delta_p:Quaternion, n_f:Quaternion):
+        d_p_xy = (delta_p.x + delta_p.y)
+        d_n_xy = (n_f.x + n_f.y)
+        np.seterr(invalid='raise', divide='raise')
         try:
-            res = np.sqrt(num / den)
+            fac = 2 / (self.a_g * d_n_xy)
+            arg = (n_f.z * d_p_xy) - (delta_p.z * d_n_xy)
+            res = np.sqrt(fac * arg)
         except FloatingPointError:
             res = np.nan
             print('Not possible')
         return res
 
     @staticmethod
-    def align_k(qk, dy):
-        vec_k = np.multiply(qk.rotate([0, 0, -1]), np.array([1, 1, 0]))
-        vec_dy = np.multiply(dy, np.array([1, 1, 0]))
-        q_rot = quat_rot(Quaternion(vector=vec_k), Quaternion(vector=vec_dy)) * qk
-        k = q_rot.rotate([0, 0, -1])
-        return k
+    def align_n(q_n, dp):
+        vec = Quaternion(vector=[0, 0, -1])
+        nc = q_n.rotate(vec)
+        nc_xy = Quaternion(vector=[nc.x, nc.y, 0])
+        dp_xy = Quaternion(vector=[dp.x, dp.y, 0])
+        q_rot = quat_rot(nc_xy, dp_xy) * q_n
+        n_f = q_rot.rotate(vec)
+        return n_f
 
+    def solve(self, p_0, p_f, q_f):
+        self.n_f = self.align_n(q_f, p_f - p_0)
+        self.t_f = self.t_f_compute(p_f - p_0, self.n_f)
+        np.seterr(invalid='raise')
+        try:
+            dp_0_z = self.dz0_eq(self.t_f, p_0.z, p_f.z)
+            dp_0_x = self.dx0_eq(self.t_f, dp_0_z)
+            dp_0_y = self.dy0_eq(self.t_f, dp_0_z)
+            self.dp_0 = Quaternion(vector=[dp_0_x, dp_0_y, dp_0_z])
+        except FloatingPointError:
+            self.dp_0 = Quaternion(vector=[np.nan, np.nan, np.nan])
+        return self.t_f, self.dp_0
 
-    def solve(self, y0, yf, qk):
-        # self.k = qk.rotate([0, 0, -1])
-        self.k = self.align_k(qk, yf - y0)
-        self.tf = self.tf_eq(yf - y0)
-        self.dy0[2] = self.dz0_eq(self.tf, y0[2], yf[2])
-        self.dy0[0] = self.dx0_eq(self.tf, self.dy0[2], 0)
-        self.dy0[1] = self.dx0_eq(self.tf, self.dy0[2], 1)
-        # Dual Quaternion and Twist Dual Quaternion Computation
-        q_0, tw_0 = self.compute_dq(y0)
-        # print(['{:0.2f}'.format(q_i) for q_i in q_0.dq_array()])
-        # print(['{:0.2f}'.format(dq_i) for dq_i in tw_0.dq_array()])
-        return self.dy0, self.tf
-
-    @staticmethod
-    def dq_from_vecs(dy0, dy1, y0, dt):
-        q0 = q_rot_from_vec(dy0)
-        q1 = q_rot_from_vec(dy1)
-        wi = 2 * (q1 - q0) * (1 / dt) * q0.conjugate
-        vi = (Quaternion(vector=y0) * wi)
-        vi = (vi - vi.w) + Quaternion(vector=dy0)
-        q_0 = DualQuaternion.from_quat_pose_array(np.append(q0.elements, y0))
-        tw_0 = DualQuaternion.from_dq_array(np.append(wi.elements, vi.elements))
-        return q_0, tw_0
-
-    def compute_dq(self, y0):
-        # q0 = self.rotation_from_vec(self.dy0)
-        r, t = self.evaluate(y0, n=3, tf=self.tf/1000)
-        dr = dx_dt(t, r)
-        q_0, tw_0 = self.dq_from_vecs(dr[0, :], dr[1, :], r[0, :], np.diff(t)[0])
-        return q_0, tw_0
-
-    def evaluate(self, y0, n=100, tf=None):
-        tf_ = tf if not tf is None else self.tf
-        t = np.linspace(0, tf_, num=n)
-        x = self.x_eq(t, y0[0], self.dy0[0])
-        y = self.x_eq(t, y0[1], self.dy0[1])
-        z = self.z_eq(t, y0[2], self.dy0[2])
-        r = np.c_[x, y, z]
-        return r, t
+    def evaluate(self, p_0, n=100, t_f=None, dp_0=None):
+        t_f = t_f if not t_f is None else self.t_f
+        dp_0 = dp_0 if not dp_0 is None else self.dp_0
+        t = np.linspace(0, t_f, num=n)
+        x = self.x_eq(t, p_0.x, dp_0.x)
+        y = self.x_eq(t, p_0.y, dp_0.y)
+        z = self.z_eq(t, p_0.z, dp_0.z)
+        p = np.array([Quaternion(vector=[x_i, y_i, z_i]) for x_i, y_i, z_i in zip(x, y, z)])
+        return p, t
 
 
 def main():
     import matplotlib.pyplot as plt
+    from matplotlib.colors import hsv_to_rgb
     from mpl_toolkits.mplot3d import Axes3D
 
-    ax = plt.figure(1).add_subplot(projection='3d')
-    fig, ax_ = plt.subplots(4, 3)
-    [[axis.set_ylim(-15, 15) for axis in axes] for axes in ax_]
-
-    ax.set_xlim3d(-2, 2)
-    ax.set_ylim3d(-2, 2)
-    ax.set_zlim3d(-2, 2)
-    ax.set_proj_type('ortho')
-    ax.view_init(elev=0, azim=0)
-
-
-    r = 1
-    n1 = 2
-    nl = 10
-    n2 = 20
+    np.set_printoptions(precision=3, suppress=True)
+    plt.rcParams.update({"text.usetex": True})
 
     pm = ProjectileModel()
-    for kz, kl in zip(np.linspace(-1, 1, num=n1), range(n1)):
-        y0 = np.array([0, 0, 0])
-        for ki in np.linspace(-nl, nl, num=n2):
-            alpha = np.pi * (0 + 2 * kl / n1)
-            yf = np.array([r * np.sin(alpha), r * np.cos(alpha), 2*kz])
-            k = np.array([yf[0]-y0[0], yf[1]-y0[1], ki])
-            qk = q_rot_from_vec(-k)
-            dy0, tf = pm.solve(y0, yf, qk)
-            y, t = pm.evaluate(y0, n=200)
 
-            def draw_rot(vec, v0, l=.25, a=1.):
-                q_r = q_rot_from_vec(vec)
-                w = q_r.rotate([0, 0, 1])
-                ax.quiver(v0[0], v0[1], v0[2], w[0], w[1], w[2], length=l, pivot='tail', color=col, alpha=a)
+    p_0 = Quaternion(vector=[0, 0, 0])
+    p_f = Quaternion(vector=[1, 0, 1])
 
-            k_ = qk.rotate([0, 0, 1])
-            print("kz: %5.3f tf:%5.3f dz0:%5.3f err:%5.3f" % (k_[2], tf, dy0[2], np.linalg.norm(y[-1, :] - yf)))
-            if not np.isnan(tf):
-                col = (nl - ki) / (nl * 2)
-                col = (col, 1 - col, .5 * (1 + kz))
-                ax.plot([yf[0]], [yf[1]], [yf[2]], 'xk')
-                ax.plot(y[:, 0], y[:, 1], y[:, 2], color=col)
-                idx = int(len(y) / 2)
-                lbl = "tf:%5.3f, dz0:%5.3f" % (tf, dy0[2])
-                ax.text(y[idx, 0], y[idx, 1], y[idx, 2], lbl, color=col, horizontalalignment='center')
-                dyf = np.diff(y[-2:, :], axis=0)[0, :] / np.diff(t[-2:])
+    ax = plt.figure(1).add_subplot(projection='3d')
+    ax.view_init(elev=0, azim=-90)  # elev=15, azim=-105
+    ax.set_xlim3d( 0.0, 1.25)
+    ax.set_ylim3d(-.75, .75)
+    ax.set_zlim3d( 0.0, 1.25)
+    ax.set_box_aspect((1, 1, 1))
+    ax.set_yticks([])
+    ax.set_xlabel("$x$")
+    ax.set_zlabel("$z$")
+    ax.set_proj_type('ortho')
 
-                # Twist Dual Quaternion Rendering
-                dy = dx_dt(t, y)
-                dt = np.diff(t)
-                tw_ = np.empty((t.shape[0] - 2), dtype=DualQuaternion)
-                for i, (yi, pdyi, dyi, dti) in enumerate(zip(y[0:-2], dy[0:-2], dy[1:], dt)):
-                    q_i, tw_i = pm.dq_from_vecs(pdyi, dyi, yi, dti)
-                    tw_[i] = tw_i
-                for i, axes in enumerate(ax_):
-                    axes[0].plot(t[:-2], [q_i.q_r.elements[i] for q_i in tw_], color=col)
-                    axes[2].plot(t[:-2], [q_i.q_d.elements[i] for q_i in tw_], color=col)
-                    axes[1].plot(t if i > 0 else [0], dy[:, i-1] if i > 0 else [0], color=col)
+    for angle in np.linspace(-0.25*np.pi, -0.66*np.pi, num=10):
+        print("angle : ", angle)
+        q_f = Quaternion(axis=[0, 1, 0], angle=angle)
+        n_c = q_f.rotate(Quaternion(vector=[0, 0 , -1]))
 
-                draw_rot(dy0, y0)
-                draw_rot(dyf, y[-1, :])
-            draw_rot(k_, yf, l=.5, a=.5)
+        t_f, dp_0 = pm.solve(p_0, p_f, q_f)
+        print(dp_0.elements[1:], t_f)
+
+        if not np.isnan(t_f): 
+            col = hsv_to_rgb((0.25 + np.abs(angle)/np.pi, 1, 1))
+            p, t = pm.evaluate(p_0, n=200)
+            txt = r"$\|\dot{\mathrm{p}}_0\|$ : %5.3f $m/s$" % dp_0.norm
+            ax.plot([p_i.x for p_i in p], [p_i.y for p_i in p], [p_i.z for p_i in p], label=txt, color=col)
+            ax.quiver(p_0.x, p_0.y, p_0.z, dp_0.x, dp_0.y, dp_0.z, length=.05, color=col)
+            ax.quiver(p_f.x, p_f.y, p_f.z, n_c.x, n_c.y, n_c.z, length=.1, color=col)
+
+    plt.legend(loc="center", ncol=1, bbox_to_anchor=(1.0,0.5))
     plt.tight_layout()
     plt.show()
 
