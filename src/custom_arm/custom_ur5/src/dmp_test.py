@@ -24,10 +24,6 @@ def main():
     p_t = Quaternion(vector=[0.70, 0.00, 0.02])
     p_t = p_r.rotate(p_t)
 
-    from custom_tools.math_tools.dq_tools import twist_from_dq_list
-
-    tw_vec = twist_from_dq_list(t_vec, dq_vec)
-
     # DMP Model
     dmp_obj = PTDQDMP(n=100, alpha_y=20)
     dmp_obj.train_model(t_vec, dq_vec)
@@ -37,7 +33,6 @@ def main():
 
     _, p_vec = pose_from_dq(dq_vec)
 
-    # dq_0, dq_g, tau = dmp_obj.correct_new_poses(p_t, v_g)
     tau = 1
     fac = 1
     t_rec = np.linspace(t_vec[0], 2*fac*t_vec[-1], num=fac*t_vec.shape[0])
@@ -64,8 +59,8 @@ def main():
         else:
             plt.xticks([])
         plt.subplot(4, 2, evn)
-        plt.plot(t_rec, dq_rec_npa[:, i + 4], label=r"$\underbar{q}_{n}$")
-        plt.plot(t_vec, dq_vec_npa[:, i + 4], '--k', label=r"$\underbar{q}_{d}$")
+        plt.plot(t_rec, dq_rec_npa[:, i + 4], label=r"$\underline{q}_{n}$")
+        plt.plot(t_vec, dq_vec_npa[:, i + 4], '--k', label=r"$\underline{q}_{d}$")
         plt.ylim(min_lim, max_lim)
         plt.ylabel(r"$\mathrm{q}_{t_%s}$" % label)
         plt.yticks([])
@@ -89,6 +84,8 @@ def main():
     # plt.plot(t_vec, q_vec, '--')
 
     # plt.figure()
+    # from custom_tools.math_tools.dq_tools import twist_from_dq_list
+    # tw_vec = twist_from_dq_list(t_vec, dq_vec)
     # tw_vec = dql_to_npa(tw_vec)
     # tw_rec = dql_to_npa(tw_rec)
     # plt.subplot(2, 2, 1)
@@ -241,7 +238,7 @@ def convergence_study():
     plt.show()
 
 
-def figure():
+def dq_tf_example():
     p_0 = Quaternion(vector=[0, 0, 0])
     r_0 = Quaternion(axis=[0, 0, 1], angle=0.0)
     dq0 = DualQuaternion.from_quat_pose_array(np.append(r_0.elements, p_0.elements[1:]))
@@ -281,10 +278,10 @@ def figure():
         ax.quiver(p_i.x, p_i.y, p_i.z, w_i.x, w_i.y, w_i.z, length=.25, color=c3)
         ax.text(p_i.x, p_i.y, p_i.z, txt, "y", c=ct, va="top")
     
-    draw_axes(dq0, [0, 0, 0], txt=r'$\underbar{q}_0$')
-    draw_axes(dq1, txt=r'$\underbar{q}_0^1$')
-    draw_axes(dq2, txt=r'$\underbar{q}_0^2$')
-    draw_axes(eqb, [1, 0, 1], txt=r'$\underbar{q}_1^2$')
+    draw_axes(dq0, [0, 0, 0], txt=r'$\underline{q}_0$')
+    draw_axes(dq1, txt=r'$\underline{q}_0^1$')
+    draw_axes(dq2, txt=r'$\underline{q}_0^2$')
+    draw_axes(eqb, [1, 0, 1], txt=r'$\underline{q}_1^2$')
 
     ax.axes.set_xlim3d(left=-0.5, right=1.5)
     ax.axes.set_ylim3d(bottom=-1.0, top=1.0)
@@ -304,4 +301,4 @@ def figure():
 if __name__ == "__main__":
     main()
     # convergence_study()
-    # figure()
+    # dq_tf_example()

@@ -117,5 +117,73 @@ def main():
     plt.show()
 
 
+def plane_rotation():
+    import matplotlib.pyplot as plt
+    from mpl_toolkits.mplot3d import Axes3D
+
+    np.set_printoptions(precision=3, suppress=True)
+    plt.rcParams.update({"text.usetex": True})
+
+    pl = ProjectileLaunching()
+
+    p_0 = Quaternion(vector=[.5, .5, 1])
+    n_0 = Quaternion(vector=[0, -1, 0])
+
+    p_t = Quaternion(vector=[1, 1.5,.5])
+
+    q_r = pl.estimate_plane_rotation(n_0, p_0, p_t)
+    n_f = q_r.rotate(n_0)
+    p_f = q_r.rotate(p_0)
+
+    ax = plt.figure(1).add_subplot(projection='3d')
+    ax.view_init(elev=30, azim=30)
+    # ax.view_init(elev=90, azim=-90)
+    ax.set_xlim3d( 0.0, 2.0)
+    ax.set_ylim3d( 0.0, 2.0)
+    ax.set_zlim3d( 0.0, 2.0)
+    ax.set_box_aspect((1, 1, 1))
+    ax.set_xlabel("$x$")
+    ax.set_ylabel("$y$")
+    ax.set_zlabel("$z$")
+    # ax.set_zticks([])
+    ax.set_proj_type('ortho')
+
+    def draw_plane(n, p, color=[0,0,0], label=""):
+        p_1 = Quaternion(vector=[0, 0, 1])
+        q_1 = (0.5 * (p_1*n - n*p_1)).normalised
+        ln1 = np.linspace(-1,   1, num=10)
+        ln2 = np.linspace(-.1, 1.5, num=10)
+        ln1, ln2 = np.meshgrid(ln1, ln2)
+        xx = p.x + p_1.x*ln1 + q_1.x*ln2
+        yy = p.y + p_1.y*ln1 + q_1.y*ln2
+        zz = p.z + p_1.z*ln1 + q_1.z*ln2
+        ax.plot(xx[:, 0], yy[:, 0], zz[:, 0], color=color, alpha=0.33)
+        surf = ax.plot_surface(xx, yy, zz, color=color, alpha=0.33, linewidth=10, antialiased=False, label=label)
+        surf._edgecolors2d = surf._edgecolor3d
+        surf._facecolors2d = surf._facecolor3d
+
+
+    ax.plot(p_0.x, p_0.y, p_0.z, 'xk', label=r"$\mathrm{p}_g$")
+    ax.plot(p_f.x, p_f.y, p_f.z, 'xb', label=r"$\mathrm{p}_g'$")
+    ax.plot(p_t.x, p_t.y, p_t.z, '*b', label=r"$\mathrm{p}_t$")
+
+    radius = Quaternion(vector=[p_0.x, p_0.y, 0]).norm
+    arg_angle = np.linspace(0, 0.5*np.pi, num=100)
+    x = radius * np.cos(arg_angle)
+    y = radius * np.sin(arg_angle)
+    z = p_0.z * np.ones(100)
+    ax.plot(x, y, z, 'b', alpha=0.5)
+
+    ax.quiver(p_0.x, p_0.y, p_0.z, n_0.x, n_0.y, n_0.z, length=0.5, colors=[0,0,0], label=r"$\mathrm{n}_g$")
+    ax.quiver(p_f.x, p_f.y, p_f.z, n_f.x, n_f.y, n_f.z, length=0.5, colors=[0,0,1], label=r"$\mathrm{n}_g\prime$")
+    draw_plane(n_0, p_0, color=[1,0,0], label=r"$\underline{\pi}$")
+    draw_plane(n_f, p_f, color=[0,0,1], label=r"$\underline{\pi}_g\prime$")
+
+    plt.legend(loc="center", bbox_to_anchor=(1.0, 0.5))
+    plt.tight_layout()
+    plt.show()
+
+
 if __name__ == '__main__':
-    main()
+    # main()
+    plane_rotation()
