@@ -111,6 +111,9 @@ class ArmManager(object):
         pose.position.y = pos[1]
         pose.position.z = pos[2]
         return pose
+    
+    def set_planner_id(self, planner_id:str):
+        self.arm_group.set_planner_id(planner_id)
 
     def move_pose(self, dq:DualQuaternion, t_scale:float=1.0):
         """
