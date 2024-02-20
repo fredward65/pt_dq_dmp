@@ -53,4 +53,5 @@ RUN mkdir -p /home/${USERNAME}/${ROS_WS}/src \
     && echo "source ~/${ROS_WS}/devel/setup.bash" >> ~/.bashrc
 
 # Smaller VNC resolution
-ENV VNC_RESOLUTION="800x600x16"
+ENV VNC_RESOLUTION="1680x1050x32"
+#"800x600x16"

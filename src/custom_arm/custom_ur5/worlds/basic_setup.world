@@ -25,11 +25,30 @@
       <uri>model://ground_plane</uri>
     </include>
     <!-- Camera angle -->
-    <gui>
+    <gui fullscreen="0">
       <camera name="user_camera">
         <projection_type>orthographic</projection_type>
         <pose>0.0 0.0 0.0 0.0 0.75 0.75</pose>
       </camera>
+      
+      <plugin filename="VideoRecorder" name="VideoRecorder">
+        <gz-gui>
+          <property key="resizable" type="bool">false</property>
+          <property key="x" type="double">300</property>
+          <property key="y" type="double">50</property>
+          <property key="width" type="double">50</property>
+          <property key="height" type="double">50</property>
+          <property key="state" type="string">floating</property>
+          <property key="showTitleBar" type="bool">false</property>
+          <property key="cardBackground" type="string">#777777</property>
+        </gz-gui>
+      
+        <record_video>
+          <use_sim_time>true</use_sim_time>
+          <lockstep>true</lockstep>
+          <bitrate>4000000</bitrate>
+        </record_video>
+      </plugin>
     </gui>
     <!-- Physics  -->
     <physics type="ode">
