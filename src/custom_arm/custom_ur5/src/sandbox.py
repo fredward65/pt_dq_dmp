@@ -46,9 +46,7 @@ def main():
     t_scale = .25
     dq_t = DualQuaternion.from_quat_pose_array(np.append([1, 0, 0, 0], p_t.elements[1:]))
     arm_mng.load_gazebo_ball(dq_t, id_=0)
-    # Get original ball pose
-    # target_pos = arm_mng.get_gazebo_object_pose("ball_%i" % 0).position
-    # target_pos = np.array([target_pos.x, target_pos.y, target_pos.z])
+    
     rospy.sleep(1)
     arm_mng.delete_gazebo_balls()
 
@@ -124,11 +122,10 @@ def main():
         print("Mean Ball Pose Difference\n", p_err_mean)
         print("Mean Ball Pose Difference Norm\n", p_err_norm_mean)
         print("Mean Ball Pose Difference Std. Dev.\n", p_err_norm_stdd)
-
+    
     c_time = time.strftime("%Y%m%d%H%M%S")
     file_name = "-".join(["throw_data", str(c_time)])
     file_path = RosPack().get_path("custom_ur5") + "/resources/"
-    # np.savez_compressed(file_path + file_name, data=t_pos, ball_pos_l=b_pos)
     with open(file_path + file_name + ".pkl", "wb") as handle:
         pickle.dump(data_dict, handle, protocol=pickle.HIGHEST_PROTOCOL)
 

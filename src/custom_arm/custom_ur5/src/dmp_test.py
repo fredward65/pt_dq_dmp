@@ -12,6 +12,19 @@ from pyquaternion import Quaternion
 np.set_printoptions(precision=3, suppress=True)
 plt.rcParams.update({"text.usetex": True})
 
+
+def draw_axes(ax, dq_list, l_=.05):
+    for dq_i in dq_list:
+        r_i = dq_i.q_r
+        p_i = 2 * dq_log(dq_i).q_d
+        u_i = r_i.rotate(Quaternion(vector=[1, 0, 0]))
+        v_i = r_i.rotate(Quaternion(vector=[0, 1, 0]))
+        w_i = r_i.rotate(Quaternion(vector=[0, 0, 1]))
+        ax.quiver(p_i.x, p_i.y, p_i.z, u_i.x, u_i.y, u_i.z, length=l_, color=[1,0,0])
+        ax.quiver(p_i.x, p_i.y, p_i.z, v_i.x, v_i.y, v_i.z, length=l_, color=[0,1,0])
+        ax.quiver(p_i.x, p_i.y, p_i.z, w_i.x, w_i.y, w_i.z, length=l_, color=[0,0,1])
+
+
 def main():
     # Generate movement data
     t_vec, dq_vec = gen_movement(r=.40, n=1000)    # .35
@@ -31,54 +44,128 @@ def main():
     dq_0, dq_g = [dq_vec[0], dq_vec[-1]]
     tw_0 = DualQuaternion.from_dq_array(np.zeros(8))
 
-    _, p_vec = pose_from_dq(dq_vec)
-
     tau = 1
     fac = 1
     t_rec = np.linspace(t_vec[0], 2*fac*t_vec[-1], num=fac*t_vec.shape[0])
 
     dq_rec, tw_rec = dmp_obj.fit_model(t_rec, dq_0, tw_0, dq_g, tau=tau)
 
-    # Plot movement data
-    plt.figure()
     dq_vec_npa = dql_to_npa(dq_vec)
     dq_rec_npa = dql_to_npa(dq_rec)
-    min_lim = np.min([dq_vec_npa, dq_rec_npa]) * 1.125
-    max_lim = np.max([dq_vec_npa, dq_rec_npa]) * 1.125
+
+    q_vec, p_vec = pose_from_dq(dq_vec)
+    q_rec, p_rec = pose_from_dq(dq_rec)
+
+    # Plot synthetic data
+    plt.figure()
     txt_var = ["w", "x", "y", "z"]
     for i in range(4):
+        min_lim = np.round(np.min(dq_vec_npa[:, i]), 1) - .1
+        max_lim = np.round(np.max(dq_vec_npa[:, i]), 1) + .1
         label = txt_var[i] 
         evn = 2 * (1 + i % 4)
         plt.subplot(4, 2, evn - 1)
-        plt.plot(t_rec, dq_rec_npa[:, i])
-        plt.plot(t_vec, dq_vec_npa[:, i], '--k')
+        plt.plot(t_vec, dq_vec_npa[:, i])
         plt.ylim(min_lim, max_lim)
         plt.ylabel(r"$\mathrm{q}_{r_%s}$" % label)
         if (i == 3):
             plt.xlabel("$t$")
         else:
             plt.xticks([])
+        min_lim = np.round(np.min(dq_rec_npa[:, i + 4]), 1) - .1
+        max_lim = np.round(np.max(dq_rec_npa[:, i + 4]), 1) + .1
         plt.subplot(4, 2, evn)
-        plt.plot(t_rec, dq_rec_npa[:, i + 4], label=r"$\underline{q}_{n}$")
-        plt.plot(t_vec, dq_vec_npa[:, i + 4], '--k', label=r"$\underline{q}_{d}$")
+        plt.plot(t_vec, dq_vec_npa[:, i + 4])
         plt.ylim(min_lim, max_lim)
         plt.ylabel(r"$\mathrm{q}_{t_%s}$" % label)
-        plt.yticks([])
         if (i == 3):
             plt.xlabel("$t$")
-            plt.legend()
         else:
             plt.xticks([])
-    plt.tight_layout(pad=1.0)
+    plt.tight_layout()
+    plt.show()
+
+    fig = plt.figure()
+    ax_1 = fig.add_subplot(projection='3d')
+    ax_1.plot(p_vec[:, 0], p_vec[:, 1], p_vec[:, 2])
+    draw_axes(ax_1, dq_vec[::99], .02)
+    ax_1.set_proj_type('ortho')
+    ax_1.view_init(elev=0, azim=-90)
+    ax_1.set_box_aspect((1, 1, 1))
+    ax_1.set_xlabel(r'$x$')
+    ax_1.set_yticks([])
+    ax_1.set_zlabel(r'$z$')
+    plt.tight_layout()
+    plt.show()
+
+    fig = plt.figure()
+    ax_1 = fig.add_subplot(projection='3d')
+    ax_1.plot(p_rec[:, 0], p_rec[:, 1], p_rec[:, 2])
+    draw_axes(ax_1, dq_rec[::99], .02)
+    ax_1.set_proj_type('ortho')
+    ax_1.view_init(elev=0, azim=-90)
+    ax_1.set_box_aspect((1, 1, 1))
+    ax_1.set_xlabel(r'$x$')
+    ax_1.set_yticks([])
+    ax_1.set_zlabel(r'$z$')
+    plt.tight_layout()
+    plt.show()
+    
+    # Plot movement data
+    plt.figure()
+    txt_var = ["w", "x", "y", "z"]
+    for i in range(4):
+        min_lim = np.round(np.min(dq_rec_npa[:, i]), 1) - .1
+        max_lim = np.round(np.max(dq_rec_npa[:, i]), 1) + .1
+        label = txt_var[i] 
+        evn = 2 * (1 + i % 4)
+        plt.subplot(4, 2, evn - 1)
+        plt.hlines(dq_vec_npa[-1, i], 0, t_rec[-1], [(1, 0, 0)], "dotted", label=r"$\underline{\mathrm{q}}_g$")
+        plt.plot(t_rec, dq_rec_npa[:, i])
+        plt.plot(t_vec, dq_vec_npa[:, i], "--k")
+        plt.ylim(min_lim, max_lim)
+        plt.ylabel(r"$\mathrm{q}_{r_%s}$" % label)
+        if (i == 3):
+            plt.xlabel("$t$")
+        else:
+            plt.xticks([])
+        min_lim = np.round(np.min(dq_rec_npa[:, i + 4]), 1) - .1
+        max_lim = np.round(np.max(dq_rec_npa[:, i + 4]), 1) + .1
+        plt.subplot(4, 2, evn)
+        plt.hlines(dq_vec_npa[-1, i + 4], 0, t_rec[-1], [(1, 0, 0)], "dotted", label=r"$\underline{\mathrm{q}}_g$")
+        plt.plot(t_rec, dq_rec_npa[:, i + 4], label=r"$\underline{\mathrm{q}}_{f}$")
+        plt.plot(t_vec, dq_vec_npa[:, i + 4], "--k", label=r"$\underline{\mathrm{q}}_{d}$")
+        plt.ylim(min_lim, max_lim)
+        plt.ylabel(r"$\mathrm{q}_{t_%s}$" % label)
+        if (i == 3):
+            plt.xlabel("$t$")
+        else:
+            plt.xticks([])
+    plt.legend(loc='center left', bbox_to_anchor=(1.0, 0.5))
+    plt.tight_layout()
+    plt.show()
 
     # plt.figure()
-    # q_vec, p_vec = pose_from_dq(dq_vec)
-    # q_rec, p_rec = pose_from_dq(dq_rec)
-    # plt.subplot(2, 1, 1)
-    # plt.hlines(p_vec[-1, :], 0, t_rec[-1], None, 'dotted')
-    # plt.plot(t_rec, p_rec)
-    # plt.plot(t_vec, p_vec, '--')
+    # labels = ['x', 'y', 'z']
+    # for i in range(3):
+    #     min_lim = np.round(np.min(p_rec[:, i]), 1) - .05
+    #     max_lim = np.round(np.max(p_rec[:, i]), 1) + .05
+    #     plt.subplot(3, 1, i + 1)
+    #     plt.ylabel(r'$\mathrm{p}_%s$' % labels[i])
+    #     plt.hlines(p_vec[-1, i], 0, t_rec[-1], [(1, 0, 0)], 'dotted', label=r'$\mathrm{p}_g$')
+    #     plt.plot(t_rec, p_rec[:, i], label=r'$\mathrm{p}_f$')
+    #     plt.plot(t_vec, p_vec[:, i], '--k', label=r'$\mathrm{p}_d$')
+    #     plt.ylim(min_lim, max_lim)
+    #     if (i < 2):
+    #         plt.xticks([])
+    #     else:
+    #         plt.xlabel(r'$t$')
+    #         plt.legend(loc='lower right')
+
+    # plt.figure()
     # plt.subplot(2, 1, 2)
+    # plt.xlabel(r'$t$')
+    # plt.ylabel(r'$\mathrm{q}_r$')
     # plt.hlines(q_vec[-1, :], 0, t_rec[-1], None, 'dotted')
     # plt.plot(t_rec, q_rec)
     # plt.plot(t_vec, q_vec, '--')
@@ -104,22 +191,10 @@ def main():
     # ax_1.axes.set_zlim3d(bottom=0., top=1.5)
     # ax_1.set_proj_type('ortho')
 
-    # def draw_axes(dq_list):
-    #     l_ = .05
-    #     for dq_i in dq_list:
-    #         r_i = dq_i.q_r
-    #         p_i = 2 * dq_log(dq_i).q_d
-    #         u_i = r_i.rotate(Quaternion(vector=[1, 0, 0]))
-    #         v_i = r_i.rotate(Quaternion(vector=[0, 1, 0]))
-    #         w_i = r_i.rotate(Quaternion(vector=[0, 0, 1]))
-    #         ax_1.quiver(p_i.x, p_i.y, p_i.z, u_i.x, u_i.y, u_i.z, length=l_, color=[1,0,0])
-    #         ax_1.quiver(p_i.x, p_i.y, p_i.z, v_i.x, v_i.y, v_i.z, length=l_, color=[0,1,0])
-    #         ax_1.quiver(p_i.x, p_i.y, p_i.z, w_i.x, w_i.y, w_i.z, length=l_, color=[0,0,1])
-
-    # draw_axes(dq_vec[::100])
-    # draw_axes(dq_rec[::100])
+    # draw_axes(ax_1, dq_vec[::100])
+    # draw_axes(ax_1, dq_rec[::100])
     
-    plt.show()
+    # plt.show()
 
 
 def convergence_study():
@@ -278,10 +353,10 @@ def dq_tf_example():
         ax.quiver(p_i.x, p_i.y, p_i.z, w_i.x, w_i.y, w_i.z, length=.25, color=c3)
         ax.text(p_i.x, p_i.y, p_i.z, txt, "y", c=ct, va="top")
     
-    draw_axes(dq0, [0, 0, 0], txt=r'$\underline{q}_0$')
-    draw_axes(dq1, txt=r'$\underline{q}_0^1$')
-    draw_axes(dq2, txt=r'$\underline{q}_0^2$')
-    draw_axes(eqb, [1, 0, 1], txt=r'$\underline{q}_1^2$')
+    draw_axes(dq0, [0, 0, 0], txt=r'$\underline{\mathrm{q}}_0$')
+    draw_axes(dq1, txt=r'$\underline{\mathrm{q}}^0_1$')
+    draw_axes(dq2, txt=r'$\underline{\mathrm{q}}^0_2$')
+    draw_axes(eqb, [1, 0, 1], txt=r'$\underline{\mathrm{q}}^1_2$')
 
     ax.axes.set_xlim3d(left=-0.5, right=1.5)
     ax.axes.set_ylim3d(bottom=-1.0, top=1.0)
@@ -301,4 +376,4 @@ def dq_tf_example():
 if __name__ == "__main__":
     main()
     # convergence_study()
-    # dq_tf_example()
+    dq_tf_example()

@@ -10,17 +10,20 @@ from custom_tools.projectile_launching import gen_movement, ProjectileLaunching
 from mpl_toolkits.mplot3d import Axes3D
 from pyquaternion import Quaternion
 
+np.set_printoptions(precision=3, suppress=True)
+plt.rcParams.update({"text.usetex": True})
+
 
 def draw_plane(ax, n, p):
     p_1 = Quaternion([0, 0, 0, 1])
     q_1 = (0.5 * (p_1*n - n*p_1)).normalised
     ln1 = np.linspace(-1, 1, num=10)
-    ln2 = np.linspace(-2, 2, num=10)
+    ln2 = np.linspace(-.5, 1.5, num=10)
     ln1, ln2 = np.meshgrid(ln1, ln2)
     xx = p.x + p_1.x*ln1 + q_1.x*ln2
     yy = p.y + p_1.y*ln1 + q_1.y*ln2
     zz = p.z + p_1.z*ln1 + q_1.z*ln2
-    ax.plot_surface(xx, yy, zz, alpha=0.25)
+    ax.plot_surface(xx, yy, zz, alpha=0.25, antialiased=False)
 
 
 def draw_axes(ax, dq_list):
@@ -46,7 +49,7 @@ def main():
 
     # Set Cartesian target
     p_r = Quaternion(axis=[0, 0, 1], angle=-0.25 * np.pi)
-    p_t = Quaternion(vector=[0.50, 0.00, 0.02])
+    p_t = Quaternion(vector=[1.00, 0.00, 0.02])
     p_t = p_r.rotate(p_t)
 
     p_l_obj = ProjectileLaunching()
@@ -69,8 +72,8 @@ def main():
     p_p = q_r.rotate(p_g)
 
     t_f, v_0 = p_l_obj.optimal_v_launch(p_p, p_t)
-    p_est = p_l_obj.simulate_launch(t_f, v_0, p_p)
-    p_dem = p_l_obj.simulate_launch(t_f, v_g, p_g)
+    p_est, t_est = p_l_obj.simulate_launch(t_f, v_0, p_p)
+    p_dem, t_dem = p_l_obj.simulate_launch(t_f, v_g, p_g)
 
     q_v = quat_rot(q_r.conjugate.rotate(v_0), v_g)
     tau = v_g.norm / v_0.norm
@@ -89,28 +92,35 @@ def main():
     tw_f = tw_rec[-1]
     p_f = 2 * dq_log(dq_f).q_d
     v_f = vel_from_twist(dq_f, dq_f * tw_f * dq_f.quaternion_conjugate())
-    p_fnl = p_l_obj.simulate_launch(t_f, v_f, p_f)
+    p_fnl, t_fnl = p_l_obj.simulate_launch(t_f, v_f, p_f)
     err_g = (p_p - p_f).norm
     err_t = (p_est[-1] - p_fnl[-1]).norm
     err_v = (v_f - v_0).norm
+    print("target : ", p_t.elements[1:])
     print("err goal = %5.5f, err target = %5.3f" % (err_g, err_t))
     print("tau = %5.3f, err vel = %5.3f" % (tau, err_v))
 
-    p_lnc = np.array([p_i.elements for p_i in p_est])
-    p_fnl = np.array([p_i.elements for p_i in p_fnl])
-    p_thr = np.array([p_i.elements for p_i in p_dem])
+    p_the = p_fnl[-1]
+
+    p_lnc = np.array([p_i.elements[1:] for p_i in p_est])
+    p_fnl = np.array([p_i.elements[1:] for p_i in p_fnl])
+    p_thr = np.array([p_i.elements[1:] for p_i in p_dem])
 
     ax = plt.figure().add_subplot(111, projection='3d')
+    ax.set_xlabel(r'$x$')
+    ax.set_ylabel(r'$y$')
+    ax.set_zlabel(r'$z$')
     # ax.plot([0], [0], [0], '*k')
+    ax.plot([p_the.x], [p_the.y], [p_the.z], 'ob')
     ax.plot([p_t.x], [p_t.y], [p_t.z], 'or')
     ax.plot([p_g.x], [p_g.y], [p_g.z], 'xk')
     ax.plot(p_vec[:, 0], p_vec[:, 1], p_vec[:, 2], 'k')
-    ax.plot(p_thr[:, 1], p_thr[:, 2], p_thr[:, 3], ':k')
+    # ax.plot(p_thr[:, 1], p_thr[:, 2], p_thr[:, 3], ':k')
     ax.quiver(p_g.x, p_g.y, p_g.z, n_g.x, n_g.y, n_g.z, length=0.2, colors=[0,0,0,1])
     ax.quiver(p_g.x, p_g.y, p_g.z, v_g.x, v_g.y, v_g.z, length=0.2, colors=[1,0,0,1])
     ax.plot([p_p.x], [p_p.y], [p_p.z], 'xb')
-    ax.plot(p_lnc[:, 1], p_lnc[:, 2], p_lnc[:, 3], ':b')
-    ax.plot(p_fnl[:, 1], p_fnl[:, 2], p_fnl[:, 3], ':m')
+    ax.plot(p_lnc[:, 0], p_lnc[:, 1], p_lnc[:, 2], ':b')
+    ax.plot(p_fnl[:, 0], p_fnl[:, 1], p_fnl[:, 2], ':m')
     ax.plot(p_rec[:, 0], p_rec[:, 1], p_rec[:, 2], 'b')
     ax.quiver(p_p.x, p_p.y, p_p.z, n_p.x, n_p.y, n_p.z, length=0.2, colors=[0,0,1,1])
     ax.quiver(p_p.x, p_p.y, p_p.z, v_0.x, v_0.y, v_0.z, length=0.2, colors=[0,0,1,1])
@@ -119,10 +129,14 @@ def main():
     # draw_axes(ax, dq_rec)
     draw_plane(ax, n_g, p_g)
     draw_plane(ax, n_p, p_p)
-    ax.axes.set_xlim3d(left=-0.5, right=1.5)
-    ax.axes.set_ylim3d(bottom=-0.5, top=1.5)
-    ax.axes.set_zlim3d(bottom=0., top=1.5)
+    # ax.set_box_aspect((1, 1, 1))
+    ax.axes.set_xlim3d(left=-1, right=1)
+    ax.axes.set_ylim3d(bottom=-1, top=1)
+    ax.axes.set_zlim3d(bottom=0, top=2)
     ax.set_proj_type('ortho')
+    ax.view_init(elev=15, azim=-150)
+    # plt.legend(loc='center left', bbox_to_anchor=(1.0, 0.5))
+    plt.tight_layout()
     plt.show()
 
 
