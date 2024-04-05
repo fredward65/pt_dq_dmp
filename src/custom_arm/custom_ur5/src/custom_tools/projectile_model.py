@@ -72,23 +72,31 @@ def main():
     from mpl_toolkits.mplot3d import Axes3D
 
     np.set_printoptions(precision=3, suppress=True)
-    plt.rcParams.update({"text.usetex": True})
+    plt.rcParams.update({'text.usetex': True, 'font.size': 7, 'figure.dpi': 100})
 
     pm = ProjectileModel()
 
     p_0 = Quaternion(vector=[0, 0, 0])
     p_f = Quaternion(vector=[1, 0, 1])
 
-    ax = plt.figure(1).add_subplot(projection='3d')
+    fig = plt.figure(1, figsize=(3, 4))
+    ax = fig.add_subplot(projection='3d', )
     ax.view_init(elev=0, azim=-90)  # elev=15, azim=-105
     ax.set_xlim3d( 0.0, 1.25)
     ax.set_ylim3d(-.75, .75)
     ax.set_zlim3d( 0.0, 1.25)
-    ax.set_box_aspect((1, 1, 1))
+    ax.set_box_aspect((1, 1, 1), zoom=1.2)
     ax.set_yticks([])
-    ax.set_xlabel("$x$")
-    ax.set_zlabel("$z$")
+    ax.set_xlabel("$x$", fontsize=12)
+    ax.set_zlabel("$z$", fontsize=12)
+    ax.xaxis.labelpad = -5
+    ax.yaxis.labelpad = -5
+    ax.zaxis.labelpad = -5
     ax.set_proj_type('ortho')
+    ax.tick_params(axis='both', which='major', labelsize=7, pad=-2, grid_alpha=0.5)
+    ax.xaxis._axinfo["grid"]['linewidth'] = .5
+    ax.yaxis._axinfo["grid"]['linewidth'] = .5
+    ax.zaxis._axinfo["grid"]['linewidth'] = .5
 
     for angle in np.linspace(-0.25*np.pi, -0.66*np.pi, num=10):
         print("angle : ", angle)
@@ -101,13 +109,19 @@ def main():
         if not np.isnan(t_f): 
             col = hsv_to_rgb((0.25 + np.abs(angle)/np.pi, 1, 1))
             p, t = pm.evaluate(p_0, n=100)
-            txt = r"$\|\dot{\mathrm{p}}_0\|$ : %5.3f $m/s$" % dp_0.norm
-            ax.plot([p_i.x for p_i in p], [p_i.y for p_i in p], [p_i.z for p_i in p], label=txt, color=col)
-            ax.quiver(p_0.x, p_0.y, p_0.z, dp_0.x, dp_0.y, dp_0.z, length=.05, color=col)
-            ax.quiver(p_f.x, p_f.y, p_f.z, n_c.x, n_c.y, n_c.z, length=.1, color=col)
+            txt = r"$\|\dot{\mathbf{p}}_0\|$ : %5.3f $m \cdot s^{-1}$" % dp_0.norm
+            ax.plot([p_i.x for p_i in p], [p_i.y for p_i in p], [p_i.z for p_i in p], label=txt, color=col, linewidth=.75)
+            ax.quiver(p_0.x, p_0.y, p_0.z, dp_0.x, dp_0.y, dp_0.z, length=.1, color=col, linewidth=.75)
+            ax.quiver(p_f.x, p_f.y, p_f.z, n_c.x, n_c.y, n_c.z, length=.2, color=col, linewidth=.75)
+    ax.plot(p_f.x, p_f.y, p_f.z, 'xk', markersize=5, zorder=np.inf, label=r"$\mathbf{p}_t$")
+    
+    ax.legend(loc="upper center", ncol=2, bbox_to_anchor=(0.5, .01), fontsize=7)
+    fig.tight_layout()
+    fig.subplots_adjust(left=0, bottom=0)
 
-    plt.legend(loc="center", ncol=1, bbox_to_anchor=(1.0, 0.5))
-    plt.tight_layout()
+    fig.savefig("./src/figures/figure_pmdem.png", dpi=200, bbox_inches="tight")
+
+    plt.subplots_adjust(left=0, bottom=.25, right=1, top=1)
     plt.show()
 
 

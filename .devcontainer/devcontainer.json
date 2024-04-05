@@ -1,14 +1,10 @@
  {
   "name": "noetic desktop-full",
   "dockerFile": "Dockerfile",
-  "runArgs": [
-    "--privileged"//,"--network=host"
-  ],
+  "runArgs": ["--privileged"],
   "workspaceMount": "source=${localWorkspaceFolder}/src,target=/home/vscode/${localWorkspaceFolderBasename}/src,type=bind",
   "workspaceFolder": "/home/vscode/${localWorkspaceFolderBasename}",
-  "mounts": [
-    "source=${localEnv:HOME}${localEnv:USERPROFILE}/.bash_history,target=/home/vscode/.bash_history,type=bind"
-  ],
+  "mounts": ["source=${localEnv:HOME}${localEnv:USERPROFILE}/.bash_history,target=/home/vscode/.bash_history,type=bind"],
   "features": {"ghcr.io/devcontainers/features/desktop-lite:1": {}},
   "forwardPorts": [6080, 5901],
   "portsAttributes": {

@@ -7,17 +7,18 @@ from custom_tools.math_tools import *
 from custom_tools.math_tools.dq_tools import twist_from_dq_list, vel_from_twist
 from custom_tools.pt_dq_dmp import PTDQDMP
 from custom_tools.projectile_launching import gen_movement, ProjectileLaunching
+from matplotlib.ticker import MultipleLocator
 from mpl_toolkits.mplot3d import Axes3D
 from pyquaternion import Quaternion
 
 np.set_printoptions(precision=3, suppress=True)
-plt.rcParams.update({"text.usetex": True})
+plt.rcParams.update({'text.usetex': True, 'font.size': 7, 'figure.dpi': 150})
 
 
 def draw_plane(ax, n, p):
     p_1 = Quaternion([0, 0, 0, 1])
     q_1 = (0.5 * (p_1*n - n*p_1)).normalised
-    ln1 = np.linspace(-1, 1, num=10)
+    ln1 = np.linspace(-.75, 1, num=10)
     ln2 = np.linspace(-.5, 1.5, num=10)
     ln1, ln2 = np.meshgrid(ln1, ln2)
     xx = p.x + p_1.x*ln1 + q_1.x*ln2
@@ -106,37 +107,49 @@ def main():
     p_fnl = np.array([p_i.elements[1:] for p_i in p_fnl])
     p_thr = np.array([p_i.elements[1:] for p_i in p_dem])
 
-    ax = plt.figure().add_subplot(111, projection='3d')
-    ax.set_xlabel(r'$x$')
-    ax.set_ylabel(r'$y$')
-    ax.set_zlabel(r'$z$')
+    fig = plt.figure(figsize=(3, 3))
+    ax = fig.add_subplot(111, projection='3d')
+    ax.set_xlabel(r'$x$', fontsize=12)
+    ax.set_ylabel(r'$y$', fontsize=12)
+    ax.set_zlabel(r'$z$', fontsize=12)
+    ax.xaxis.labelpad = -5
+    ax.yaxis.labelpad = -5
+    ax.zaxis.labelpad = -5
+    ax.xaxis._axinfo["grid"]['linewidth'] = .5
+    ax.yaxis._axinfo["grid"]['linewidth'] = .5
+    ax.zaxis._axinfo["grid"]['linewidth'] = .5
+    ax.tick_params(axis='both', which='major', labelsize=7, pad=-2)
+    ax.xaxis.set_major_locator(MultipleLocator(0.5))
+    ax.yaxis.set_major_locator(MultipleLocator(0.5))
+    ax.zaxis.set_major_locator(MultipleLocator(0.5))
     # ax.plot([0], [0], [0], '*k')
     ax.plot([p_the.x], [p_the.y], [p_the.z], 'ob')
     ax.plot([p_t.x], [p_t.y], [p_t.z], 'or')
     ax.plot([p_g.x], [p_g.y], [p_g.z], 'xk')
     ax.plot(p_vec[:, 0], p_vec[:, 1], p_vec[:, 2], 'k')
     # ax.plot(p_thr[:, 1], p_thr[:, 2], p_thr[:, 3], ':k')
-    ax.quiver(p_g.x, p_g.y, p_g.z, n_g.x, n_g.y, n_g.z, length=0.2, colors=[0,0,0,1])
-    ax.quiver(p_g.x, p_g.y, p_g.z, v_g.x, v_g.y, v_g.z, length=0.2, colors=[1,0,0,1])
+    ax.quiver(p_g.x, p_g.y, p_g.z, n_g.x, n_g.y, n_g.z, length=0.2, colors=[0,0,0,1], linewidth=1)
+    ax.quiver(p_g.x, p_g.y, p_g.z, v_g.x, v_g.y, v_g.z, length=0.2, colors=[1,0,0,1], linewidth=1)
     ax.plot([p_p.x], [p_p.y], [p_p.z], 'xb')
-    ax.plot(p_lnc[:, 0], p_lnc[:, 1], p_lnc[:, 2], ':b')
-    ax.plot(p_fnl[:, 0], p_fnl[:, 1], p_fnl[:, 2], ':m')
+    ax.plot(p_lnc[:, 0], p_lnc[:, 1], p_lnc[:, 2], ':m')
+    ax.plot(p_fnl[:, 0], p_fnl[:, 1], p_fnl[:, 2], ':b')
     ax.plot(p_rec[:, 0], p_rec[:, 1], p_rec[:, 2], 'b')
-    ax.quiver(p_p.x, p_p.y, p_p.z, n_p.x, n_p.y, n_p.z, length=0.2, colors=[0,0,1,1])
-    ax.quiver(p_p.x, p_p.y, p_p.z, v_0.x, v_0.y, v_0.z, length=0.2, colors=[0,0,1,1])
-    ax.quiver(p_f.x, p_f.y, p_f.z, v_f.x, v_f.y, v_f.z, length=0.2, colors=[1,0,1,1])
+    ax.quiver(p_p.x, p_p.y, p_p.z, n_p.x, n_p.y, n_p.z, length=0.2, colors=[0,0,1,1], linewidth=1)
+    ax.quiver(p_p.x, p_p.y, p_p.z, v_0.x, v_0.y, v_0.z, length=0.2, colors=[0,0,1,1], linewidth=1)
+    ax.quiver(p_f.x, p_f.y, p_f.z, v_f.x, v_f.y, v_f.z, length=0.2, colors=[1,0,1,1], linewidth=1)
     # draw_axes(ax, dq_vec)
     # draw_axes(ax, dq_rec)
     draw_plane(ax, n_g, p_g)
     draw_plane(ax, n_p, p_p)
-    # ax.set_box_aspect((1, 1, 1))
+    ax.set_box_aspect((1, 1, 1), zoom=1)
     ax.axes.set_xlim3d(left=-1, right=1)
     ax.axes.set_ylim3d(bottom=-1, top=1)
     ax.axes.set_zlim3d(bottom=0, top=2)
     ax.set_proj_type('ortho')
     ax.view_init(elev=15, azim=-150)
     # plt.legend(loc='center left', bbox_to_anchor=(1.0, 0.5))
-    plt.tight_layout()
+    plt.tight_layout(rect=(.01, .01, .99, .99))
+    fig.savefig("./src/figures/figure_syntheticthrow3D.png", dpi=200, bbox_inches="tight")
     plt.show()
 
 

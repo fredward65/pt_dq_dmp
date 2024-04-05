@@ -5,12 +5,14 @@ from custom_tools.math_tools import *
 from custom_tools.projectile_launching import gen_movement
 from custom_tools.pt_dq_dmp import PTDQDMP
 from dual_quaternions import DualQuaternion
-from matplotlib import pyplot as plt, ticker as tkr
+from matplotlib import pyplot as plt
+from matplotlib.ticker import FormatStrFormatter
 from mpl_toolkits.mplot3d import Axes3D
 from pyquaternion import Quaternion
 
 np.set_printoptions(precision=3, suppress=True)
-plt.rcParams.update({"text.usetex": True})
+plt.rcParams.update({'text.usetex': True, 'font.size': 7, 'figure.dpi': 150})
+
 
 
 def draw_axes(ax, dq_list, l_=.05):
@@ -20,14 +22,47 @@ def draw_axes(ax, dq_list, l_=.05):
         u_i = r_i.rotate(Quaternion(vector=[1, 0, 0]))
         v_i = r_i.rotate(Quaternion(vector=[0, 1, 0]))
         w_i = r_i.rotate(Quaternion(vector=[0, 0, 1]))
-        ax.quiver(p_i.x, p_i.y, p_i.z, u_i.x, u_i.y, u_i.z, length=l_, color=[1,0,0])
-        ax.quiver(p_i.x, p_i.y, p_i.z, v_i.x, v_i.y, v_i.z, length=l_, color=[0,1,0])
-        ax.quiver(p_i.x, p_i.y, p_i.z, w_i.x, w_i.y, w_i.z, length=l_, color=[0,0,1])
+        ax.quiver(p_i.x, p_i.y, p_i.z, u_i.x, u_i.y, u_i.z, length=l_, color=[1,0,0], linewidth=.5)
+        ax.quiver(p_i.x, p_i.y, p_i.z, v_i.x, v_i.y, v_i.z, length=l_, color=[0,1,0], linewidth=.5)
+        ax.quiver(p_i.x, p_i.y, p_i.z, w_i.x, w_i.y, w_i.z, length=l_, color=[0,0,1], linewidth=.5)
+
+
+def min_jerk_traj(init_pos, target_pos, t_vec):
+    """ https://github.com/ekorudiawan/Minimum-Jerk-Trajectory/tree/master """
+    xi = init_pos
+    xf = target_pos
+    d = t_vec[-1]
+    list_x = []
+    t = 0
+    for t in t_vec:
+        x = xi + (xf-xi) * (10*(t/d)**3 - 15*(t/d)**4 + 6*(t/d)**5)
+        list_x.append(x)
+    return np.array(list_x)
+
+
+def gen_data():
+    t_vec = np.linspace(0, 1, num=1000)
+    
+    x = min_jerk_traj(0.00, 0.50, t_vec)
+    y = min_jerk_traj(0.00, 0.75, t_vec)
+    z = min_jerk_traj(0.00, 1.00, t_vec)
+
+    axis = Quaternion(vector=[1, 1, 1]).normalised.elements[1:]
+    angle = 0.75 * np.pi * t_vec
+    q_rot = [Quaternion(axis=axis, angle=angle_i) for angle_i in angle]
+    p = np.c_[x, y, z]
+
+    dq_pose = lambda q, p : DualQuaternion.from_quat_pose_array(np.append(q, p))
+    dq_vec = np.array([dq_pose(q_i.elements, p_i) for q_i, p_i in zip(q_rot, p)])
+
+    return t_vec, dq_vec
 
 
 def main():
     # Generate movement data
-    t_vec, dq_vec = gen_movement(r=.40, n=1000)    # .35
+    # t_vec, dq_vec = gen_data()
+
+    t_vec, dq_vec = gen_movement(r=.40, n=100)    # .35
     p_0 = Quaternion(vector=[-.65, -.05, .40])      # -.35 .35 .45 
     q_0 = Quaternion(axis=[0, 0, 1], angle=0.00 * np.pi)
     dq_0 = DualQuaternion.from_quat_pose_array(np.append(q_0.elements, p_0.elements[1:]))
@@ -57,92 +92,114 @@ def main():
     q_rec, p_rec = pose_from_dq(dq_rec)
 
     # Plot synthetic data
-    plt.figure()
+    fig_synth = plt.figure(figsize=(3, 2), tight_layout=True)
+    fig_3d = plt.figure(figsize=(2, 2), tight_layout=True)
+    axs = fig_synth.subplots(4, 2)
+    axs[0][0].set_title(r"$\mathbf{q}_\mathrm{r}$", fontsize=12)
+    axs[0][1].set_title(r"$\mathbf{q}_\mathrm{t}$", fontsize=12)
+    fig_3d.suptitle(r"$\underline{\mathbf{q}}$", fontsize=12)
+    ax_3d = fig_3d.add_subplot(111, projection='3d')
+
     txt_var = ["w", "x", "y", "z"]
     for i in range(4):
+        label = txt_var[i] 
+        evn = 2 * (1 + i % 4)
         min_lim = np.round(np.min(dq_vec_npa[:, i]), 1) - .1
         max_lim = np.round(np.max(dq_vec_npa[:, i]), 1) + .1
-        label = txt_var[i] 
-        evn = 2 * (1 + i % 4)
-        plt.subplot(4, 2, evn - 1)
-        plt.plot(t_vec, dq_vec_npa[:, i])
-        plt.ylim(min_lim, max_lim)
-        plt.ylabel(r"$\mathrm{q}_{r_%s}$" % label)
-        if (i == 3):
-            plt.xlabel("$t$")
-        else:
-            plt.xticks([])
+        axs[i][0].plot(t_vec, dq_vec_npa[:, i])
+        axs[i][0].set_ylim(min_lim, max_lim)
+        axs[i][0].set_ylabel(r"$%s$" % label, fontsize=12)
+        axs[i][0].yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
         min_lim = np.round(np.min(dq_rec_npa[:, i + 4]), 1) - .1
         max_lim = np.round(np.max(dq_rec_npa[:, i + 4]), 1) + .1
-        plt.subplot(4, 2, evn)
-        plt.plot(t_vec, dq_vec_npa[:, i + 4])
-        plt.ylim(min_lim, max_lim)
-        plt.ylabel(r"$\mathrm{q}_{t_%s}$" % label)
+        axs[i][1].plot(t_vec, dq_vec_npa[:, i + 4])
+        axs[i][1].set_ylim(min_lim, max_lim)
+        axs[i][1].yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
         if (i == 3):
-            plt.xlabel("$t$")
+            axs[i][0].set_xlabel("$t$", fontsize=12)
+            axs[i][1].set_xlabel("$t$", fontsize=12)
         else:
-            plt.xticks([])
-    plt.tight_layout()
-    plt.show()
+            axs[i][0].set_xticks([])
+            axs[i][1].set_xticks([])
 
-    fig = plt.figure()
-    ax_1 = fig.add_subplot(projection='3d')
-    ax_1.plot(p_vec[:, 0], p_vec[:, 1], p_vec[:, 2])
-    draw_axes(ax_1, dq_vec[::99], .02)
-    ax_1.set_proj_type('ortho')
-    ax_1.view_init(elev=0, azim=-90)
-    ax_1.set_box_aspect((1, 1, 1))
-    ax_1.set_xlabel(r'$x$')
-    ax_1.set_yticks([])
-    ax_1.set_zlabel(r'$z$')
-    plt.tight_layout()
-    plt.show()
-
-    fig = plt.figure()
-    ax_1 = fig.add_subplot(projection='3d')
-    ax_1.plot(p_rec[:, 0], p_rec[:, 1], p_rec[:, 2])
-    draw_axes(ax_1, dq_rec[::99], .02)
-    ax_1.set_proj_type('ortho')
-    ax_1.view_init(elev=0, azim=-90)
-    ax_1.set_box_aspect((1, 1, 1))
-    ax_1.set_xlabel(r'$x$')
-    ax_1.set_yticks([])
-    ax_1.set_zlabel(r'$z$')
-    plt.tight_layout()
-    plt.show()
     
-    # Plot movement data
-    plt.figure()
+    ax_3d.plot(p_vec[:, 0], p_vec[:, 1], p_vec[:, 2])
+    ax_3d.plot(p_vec[:, 0], p_vec[:, 1], 0*p_vec[:, 2], 'k', alpha=0.25)
+    draw_axes(ax_3d, dq_vec[::99], .1)
+    ax_3d.set_proj_type('ortho')
+    ax_3d.set_xlim([0, 1])
+    ax_3d.set_ylim([0, 1])
+    ax_3d.set_zlim([0, 1])
+    ax_3d.set_xlabel(r'$x$', fontsize=12)
+    ax_3d.set_ylabel(r'$y$', fontsize=12)
+    ax_3d.set_zlabel(r'$z$', fontsize=12)
+    ax_3d.xaxis.labelpad = -5
+    ax_3d.yaxis.labelpad = -5
+    ax_3d.zaxis.labelpad = -5
+    ax_3d.tick_params(axis='both', which='major', labelsize=5, pad=-2, grid_alpha=1)
+    ax_3d.view_init(elev=45, azim=-45)
+    ax_3d.set_box_aspect((1, 1, 1), zoom=.90)
+    
+    # Plot reconstructed data
+    fig_synthrec = plt.figure(figsize=(5, 2.5), constrained_layout=True)
+    subfigs = fig_synthrec.subfigures(1, 2, width_ratios=[1, 1])
+    axs = subfigs[0].subplots(4, 2)
+    axs[0][0].set_title(r"$\mathbf{q}_\mathrm{r}$", fontsize=12)
+    axs[0][1].set_title(r"$\mathbf{q}_\mathrm{t}$", fontsize=12)
+    ax_3d = subfigs[1].add_subplot(projection='3d')
+    ax_3d.set_title(r"$\underline{\mathbf{q}}$", fontsize=12)
+    subfigs[1].set_facecolor((0,0,0,0))
+    ax_3d.set_facecolor((0,0,0,0))
+    
     txt_var = ["w", "x", "y", "z"]
     for i in range(4):
+        label = txt_var[i] 
         min_lim = np.round(np.min(dq_rec_npa[:, i]), 1) - .1
         max_lim = np.round(np.max(dq_rec_npa[:, i]), 1) + .1
-        label = txt_var[i] 
-        evn = 2 * (1 + i % 4)
-        plt.subplot(4, 2, evn - 1)
-        plt.hlines(dq_vec_npa[-1, i], 0, t_rec[-1], [(1, 0, 0)], "dotted", label=r"$\underline{\mathrm{q}}_g$")
-        plt.plot(t_rec, dq_rec_npa[:, i])
-        plt.plot(t_vec, dq_vec_npa[:, i], "--k")
-        plt.ylim(min_lim, max_lim)
-        plt.ylabel(r"$\mathrm{q}_{r_%s}$" % label)
-        if (i == 3):
-            plt.xlabel("$t$")
-        else:
-            plt.xticks([])
+        axs[i][0].hlines(dq_vec_npa[-1, i], 0, t_rec[-1], [(1, 0, 0)], "dotted", linewidth=.75)
+        axs[i][0].plot(t_rec, dq_rec_npa[:, i], linewidth=.75)
+        axs[i][0].plot(t_vec, dq_vec_npa[:, i], "--k", linewidth=1)
+        axs[i][0].set_ylim(min_lim, max_lim)
+        axs[i][0].set_ylabel(r"$%s$" % label, fontsize=12)
+        axs[i][0].yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
         min_lim = np.round(np.min(dq_rec_npa[:, i + 4]), 1) - .1
         max_lim = np.round(np.max(dq_rec_npa[:, i + 4]), 1) + .1
-        plt.subplot(4, 2, evn)
-        plt.hlines(dq_vec_npa[-1, i + 4], 0, t_rec[-1], [(1, 0, 0)], "dotted", label=r"$\underline{\mathrm{q}}_g$")
-        plt.plot(t_rec, dq_rec_npa[:, i + 4], label=r"$\underline{\mathrm{q}}_{f}$")
-        plt.plot(t_vec, dq_vec_npa[:, i + 4], "--k", label=r"$\underline{\mathrm{q}}_{d}$")
-        plt.ylim(min_lim, max_lim)
-        plt.ylabel(r"$\mathrm{q}_{t_%s}$" % label)
+        axs[i][1].hlines(dq_vec_npa[-1, i + 4], 0, t_rec[-1], [(1, 0, 0)], "dotted", linewidth=.75, label=r"$\underline{\mathbf{q}}_g$" if i == 3 else None)
+        axs[i][1].plot(t_rec, dq_rec_npa[:, i + 4], linewidth=.75, label=r"$\underline{\mathbf{q}}_{f}$" if i == 3 else None)
+        axs[i][1].plot(t_vec, dq_vec_npa[:, i + 4], "--k", linewidth=1, label=r"$\underline{\mathbf{q}}_{d}$" if i == 3 else None)
+        axs[i][1].set_ylim(min_lim, max_lim)
+        axs[i][1].yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
         if (i == 3):
-            plt.xlabel("$t$")
+            axs[i][0].set_xlabel("$t$", fontsize=10)
+            axs[i][1].set_xlabel("$t$", fontsize=10)
         else:
-            plt.xticks([])
-    plt.legend(loc='center left', bbox_to_anchor=(1.0, 0.5))
-    plt.tight_layout()
+            axs[i][0].set_xticks([])
+            axs[i][1].set_xticks([])
+    subfigs[0].legend(loc="upper left", bbox_to_anchor=(1, .92))
+
+    ax_3d.plot(p_rec[:, 0], p_rec[:, 1], 0 * p_rec[:, 2], 'k', linewidth=1, alpha=0.5)
+    ax_3d.plot(p_rec[:, 0], p_rec[:, 1], p_rec[:, 2], linewidth=1)
+    ax_3d.plot(p_vec[:, 0], p_vec[:, 1], p_vec[:, 2], '--k', linewidth=1)
+    draw_axes(ax_3d, dq_rec[::30], .075)
+    ax_3d.set_proj_type('ortho')
+    ax_3d.set_xlim([0, 1])
+    ax_3d.set_ylim([0, 1])
+    ax_3d.set_zlim([0, 1])
+    ax_3d.view_init(elev=20, azim=-60)
+    ax_3d.set_box_aspect((1, 1, 1), zoom=.9)
+    ax_3d.set_xlabel(r'$x$', fontsize=12)
+    ax_3d.set_ylabel(r'$y$', fontsize=12)
+    ax_3d.set_zlabel(r'$z$', fontsize=12)
+    ax_3d.xaxis.labelpad = -5
+    ax_3d.yaxis.labelpad = -5
+    ax_3d.zaxis.labelpad = -5
+    ax_3d.xaxis._axinfo["grid"]['linewidth'] = .5
+    ax_3d.yaxis._axinfo["grid"]['linewidth'] = .5
+    ax_3d.zaxis._axinfo["grid"]['linewidth'] = .5
+    ax_3d.tick_params(axis='both', which='major', labelsize=5, pad=-2, grid_alpha=1)
+
+    # fig_synthrec.savefig("./src/figures/figure_dqdmp.png", dpi=200, bbox_inches="tight")
+
     plt.show()
 
     # plt.figure()
@@ -197,183 +254,5 @@ def main():
     # plt.show()
 
 
-def convergence_study():
-    t_f = 1
-
-    dq_0 = DualQuaternion.identity()
-    tw_0 = DualQuaternion.from_dq_array(np.zeros(8))
-    
-    r_g = Quaternion(axis=[0, 1, 0], angle=0.5*np.pi)
-    p_g = Quaternion(vector=[.5, 0, 1])
-    dq_g = DualQuaternion.from_quat_pose_array(np.append(r_g.elements, p_g.elements[1:]))
-
-    # r_off = Quaternion(axis=[0, 1, 0], angle=0.0*np.pi) * \
-    #         Quaternion(axis=[0, 0, 1], angle=1.0*np.pi)
-    # dq_off = DualQuaternion.from_quat_pose_array(np.append(r_off.elements, [0, 0, 0]))
-    # dq_0 = dq_off * dq_0
-    # dq_g = dq_off * dq_g
-
-    dt = .001
-    t_c = 0.0
-    
-    alpha = 20
-    beta = alpha / 4
-    dq = dq_0
-    tw = tw_0
-    t_rec = []
-    dq_rec = []
-    edq_rec = []
-    tw_rec = []
-    dtw_rec = []
-    fac = 2
-    while t_c < fac*t_f:
-        edq = 2 * dq_log(dq.quaternion_conjugate() * dq_g)
-        dtw = alpha * ((beta * edq) + (-1*tw))
-        dtw_rec.append(dtw)
-        tw_rec.append(tw)
-        dq_rec.append(dq)
-        edq_rec.append(edq)
-        t_rec.append(t_c)
-        tw = tw + dt * dtw
-        # edq = edq + -dt * tw
-        # dq = dq_g * dq_exp(0.5 * edq).quaternion_conjugate()
-        # dq = dq * dq_exp(0.5 * dt * tw)
-        # dq = dq_exp(0.5 * dt * tw) * dq
-        dq = dq_exp(0.5 * dt * dq * tw * dq.quaternion_conjugate()) * dq
-        t_c += dt
-
-    r_rec, p_rec = pose_from_dq(dq_rec)
-    dq_rec = dql_to_npa(dq_rec)
-    tw_rec = dql_to_npa(tw_rec)
-    dtw_rec = dql_to_npa(dtw_rec)
-    edq_rec = dql_to_npa(edq_rec)
-
-    plt.figure()
-    plt.subplot(2, 2, 1)
-    plt.title("Prime")
-    plt.plot(t_rec, dq_rec[:, 0:4])
-    plt.hlines(dq_g.q_r.elements, 0, t_f, None, 'dotted')
-    plt.subplot(2, 2, 2)
-    plt.title("Dual")
-    plt.plot(t_rec, dq_rec[:, 4: ])
-    plt.hlines(dq_g.q_d.elements, 0, t_f, None, 'dotted')
-    plt.subplot(2, 2, 3)
-    plt.title("quaternion")
-    plt.plot(t_rec, r_rec)
-    plt.hlines(r_g.elements, 0, t_f, None, 'dotted')
-    plt.subplot(2, 2, 4)
-    plt.title("position")
-    plt.plot(t_rec, p_rec)
-    plt.hlines(p_g.elements[1:], 0, t_f, None, 'dotted')
-
-    plt.figure()
-    plt.subplot(3, 2, 1)
-    plt.title("Prime Error")
-    plt.plot(t_rec, edq_rec[:, 0:4])
-    plt.subplot(3, 2, 2)
-    plt.title("Dual Error")
-    plt.plot(t_rec, edq_rec[:, 4: ])
-    plt.subplot(3, 2, 3)
-    plt.title("Prime Twist")
-    plt.plot(t_rec, tw_rec[:, 0:4])
-    plt.subplot(3, 2, 4)
-    plt.title("Dual Twist")
-    plt.plot(t_rec, tw_rec[:, 4: ])
-    plt.subplot(3, 2, 5)
-    plt.title("Prime Twist Derivative")
-    plt.plot(t_rec, dtw_rec[:, 0:4])
-    plt.subplot(3, 2, 6)
-    plt.title("Dual Twist Derivative")
-    plt.plot(t_rec, dtw_rec[:, 4: ])
-
-    fig = plt.figure()
-    ax_1 = fig.add_subplot(projection='3d')
-    ax_1.view_init(elev=.001, azim=-90)
-    ax_1.plot(p_rec[:, 0], p_rec[:, 1], p_rec[:, 2], 'b')
-    ax_1.axes.set_xlim3d(left=-0.5, right=1.0)
-    ax_1.axes.set_ylim3d(bottom=-0.5, top=1.0)
-    ax_1.axes.set_zlim3d(bottom=0., top=1.5)
-    ax_1.set_proj_type('ortho')
-
-    def draw_axes(dq_list):
-        l_ = .05
-        for dq_i in dq_list:
-            r_i = dq_i.q_r
-            p_i = 2 * dq_log(dq_i).q_d
-            u_i = r_i.rotate(Quaternion(vector=[1, 0, 0]))
-            v_i = r_i.rotate(Quaternion(vector=[0, 1, 0]))
-            w_i = r_i.rotate(Quaternion(vector=[0, 0, 1]))
-            ax_1.quiver(p_i.x, p_i.y, p_i.z, u_i.x, u_i.y, u_i.z, length=l_, color=[1,0,0])
-            ax_1.quiver(p_i.x, p_i.y, p_i.z, v_i.x, v_i.y, v_i.z, length=l_, color=[0,1,0])
-            ax_1.quiver(p_i.x, p_i.y, p_i.z, w_i.x, w_i.y, w_i.z, length=l_, color=[0,0,1])
-
-    dq_rec = npa_to_dql(dq_rec)
-    draw_axes(dq_rec[::10])
-
-    plt.show()
-
-
-def dq_tf_example():
-    p_0 = Quaternion(vector=[0, 0, 0])
-    r_0 = Quaternion(axis=[0, 0, 1], angle=0.0)
-    dq0 = DualQuaternion.from_quat_pose_array(np.append(r_0.elements, p_0.elements[1:]))
-    
-    p_1 = Quaternion(vector=[0.5, 0.0, 0])
-    r_1 = Quaternion(axis=[0, 0, 1], angle=0.33*np.pi)
-    dq1 = DualQuaternion.from_quat_pose_array(np.append(r_1.elements, p_1.elements[1:]))
-    
-    p_2 = Quaternion(vector=[1.0, 0.5, 0])
-    r_2 = Quaternion(axis=[0, 0, 1], angle=0.50*np.pi)
-    dq2 = DualQuaternion.from_quat_pose_array(np.append(r_2.elements, p_2.elements[1:]))
-    
-    eqb = dq1.quaternion_conjugate() * dq2
-    
-    ax = plt.figure(figsize=(4,4)).add_subplot(projection='3d')
-    ax.view_init(elev=90, azim=-180)
-
-    def draw_axes(dqi, color=None, txt=""):
-        if not color:
-            c1 = [1,0,0]
-            c2 = [0,1,0]
-            c3 = [0,0,1]
-            ct = [0,0,0]
-        else:
-            c1 = color
-            c2 = color
-            c3 = color
-            ct = color
-        r_i = dqi.q_r
-        log = 2 * dq_log(dqi)
-        p_i = log.q_d
-        u_i = r_i.rotate(Quaternion(vector=[1, 0, 0]))
-        v_i = r_i.rotate(Quaternion(vector=[0, 1, 0]))
-        w_i = r_i.rotate(Quaternion(vector=[0, 0, 1]))
-        ax.quiver(p_i.x, p_i.y, p_i.z, u_i.x, u_i.y, u_i.z, length=.25, color=c1)
-        ax.quiver(p_i.x, p_i.y, p_i.z, v_i.x, v_i.y, v_i.z, length=.25, color=c2)
-        ax.quiver(p_i.x, p_i.y, p_i.z, w_i.x, w_i.y, w_i.z, length=.25, color=c3)
-        ax.text(p_i.x, p_i.y, p_i.z, txt, "y", c=ct, va="top")
-    
-    draw_axes(dq0, [0, 0, 0], txt=r'$\underline{\mathrm{q}}_0$')
-    draw_axes(dq1, txt=r'$\underline{\mathrm{q}}^0_1$')
-    draw_axes(dq2, txt=r'$\underline{\mathrm{q}}^0_2$')
-    draw_axes(eqb, [1, 0, 1], txt=r'$\underline{\mathrm{q}}^1_2$')
-
-    ax.axes.set_xlim3d(left=-0.5, right=1.5)
-    ax.axes.set_ylim3d(bottom=-1.0, top=1.0)
-    ax.axes.set_zlim3d(bottom=-0.5, top=0.5)
-    ax.set_proj_type('ortho')
-
-    ax.xaxis.set_major_locator(tkr.MultipleLocator(0.5))
-    ax.yaxis.set_major_locator(tkr.MultipleLocator(0.5))
-    ax.set_xlabel("$x$", loc="left")
-    ax.set_ylabel("$y$", loc="bottom")
-    ax.set_zticks([])
-
-    plt.tight_layout()
-    plt.show()
-
-
 if __name__ == "__main__":
     main()
-    # convergence_study()
-    dq_tf_example()

@@ -73,24 +73,36 @@ def gen_movement(r=1.00, n=100):
 def main():
     import matplotlib.pyplot as plt
     from matplotlib.colors import hsv_to_rgb
+    from matplotlib.ticker import MultipleLocator
     from mpl_toolkits.mplot3d import Axes3D
 
     np.set_printoptions(precision=3, suppress=True)
-    plt.rcParams.update({"text.usetex": True})
+    plt.rcParams.update({'text.usetex': True, 'font.size': 7, 'figure.dpi': 150})
 
     pl = ProjectileLaunching()
 
     p_0 = Quaternion(vector=[0, 0, 0])
 
-    ax = plt.figure(1).add_subplot(projection='3d')
-    ax.view_init(elev=15, azim=-105)
+    fig = plt.figure(figsize=(3, 3))
+    ax = fig.add_subplot(projection='3d')
+    ax.view_init(elev=25, azim=-135)
     ax.set_xlim3d( 0.0, 1.0)
     ax.set_ylim3d(-0.5, 0.5)
     ax.set_zlim3d( 0.0, 1.0)
     ax.set_box_aspect((1, 1, 1))
-    ax.set_xlabel("$x$")
-    ax.set_ylabel("$y$")
-    ax.set_zlabel("$z$")
+    ax.set_xlabel("$x$", fontsize=12)
+    ax.set_ylabel("$y$", fontsize=12)
+    ax.set_zlabel("$z$", fontsize=12)
+    ax.xaxis.labelpad = -5
+    ax.yaxis.labelpad = -5
+    ax.zaxis.labelpad = -5
+    ax.xaxis._axinfo["grid"]['linewidth'] = .5
+    ax.yaxis._axinfo["grid"]['linewidth'] = .5
+    ax.zaxis._axinfo["grid"]['linewidth'] = .5
+    ax.xaxis.set_major_locator(MultipleLocator(0.5))
+    ax.yaxis.set_major_locator(MultipleLocator(0.5))
+    ax.zaxis.set_major_locator(MultipleLocator(0.5))
+    ax.tick_params(axis='both', which='major', pad=-2)
     ax.set_proj_type('ortho')
 
     count = 8
@@ -106,14 +118,16 @@ def main():
 
         col = hsv_to_rgb((i/count, .75, .75))
         p, t = pl.simulate_launch(t_f, dp_0, p_0, n=100)
-        txt = r"$\|\dot{\mathrm{p}}_0\|$ : %5.3f $m/s$" % dp_0.norm
-        ax.plot([p_i.x for p_i in p], [p_i.y for p_i in p], [0 for p_i in p], color=(0,0,0), alpha=0.25, zorder=0)
-        ax.plot([p_i.x for p_i in p], [p_i.y for p_i in p], [p_i.z for p_i in p], label=txt, color=col)
+        txt = r"$\|\dot{\mathbf{p}}_0\|$ : %5.3f $m \cdot s^{-1}$" % dp_0.norm
+        ax.plot([p_i.x for p_i in p], [p_i.y for p_i in p], [0 for p_i in p], color=(0,0,0), alpha=0.25, zorder=0, linewidth=1)
+        ax.plot([p_i.x for p_i in p], [p_i.y for p_i in p], [p_i.z for p_i in p], label=txt, color=col, linewidth=1)
         ax.plot(p_f.x, p_f.y, p_f.z, 'x', color=col)
-        ax.quiver(p_0.x, p_0.y, p_0.z, dp_0.x, dp_0.y, dp_0.z, length=.05, color=col)
+        ax.quiver(p_0.x, p_0.y, p_0.z, dp_0.x, dp_0.y, dp_0.z, length=.05, color=col, linewidth=1)
+    ax.legend(loc="upper center", bbox_to_anchor=(0.5, .0), ncol=count//4)
 
-    plt.legend(loc="upper center", ncol=count//4)
-    plt.tight_layout()
+    fig.tight_layout()
+
+    plt.subplots_adjust(left=0, bottom=.25, right=1, top=1)
     plt.show()
 
 
@@ -122,7 +136,7 @@ def plane_rotation():
     from mpl_toolkits.mplot3d import Axes3D
 
     np.set_printoptions(precision=3, suppress=True)
-    plt.rcParams.update({"text.usetex": True})
+    plt.rcParams.update({'text.usetex': True, 'font.size': 7, 'figure.dpi': 150})
 
     pl = ProjectileLaunching()
 
@@ -135,17 +149,17 @@ def plane_rotation():
     n_f = q_r.rotate(n_0)
     p_f = q_r.rotate(p_0)
 
-    ax = plt.figure(1).add_subplot(projection='3d')
-    ax.view_init(elev=30, azim=30)
-    # ax.view_init(elev=90, azim=-90)
+    ax = plt.figure(1, figsize=(3, 3)).add_subplot(projection='3d')
+    # ax.view_init(elev=30, azim=30)
+    ax.view_init(elev=90, azim=-90)
     ax.set_xlim3d( 0.0, 2.0)
     ax.set_ylim3d( 0.0, 2.0)
     ax.set_zlim3d( 0.0, 2.0)
     ax.set_box_aspect((1, 1, 1))
     ax.set_xlabel("$x$")
     ax.set_ylabel("$y$")
-    ax.set_zlabel("$z$")
-    # ax.set_zticks([])
+    # ax.set_zlabel("$z$")
+    ax.set_zticks([])
     ax.set_proj_type('ortho')
 
     def draw_plane(n, p, color=[0,0,0], label=""):
@@ -161,7 +175,6 @@ def plane_rotation():
         surf = ax.plot_surface(xx, yy, zz, color=color, alpha=0.33, linewidth=10, antialiased=False, label=label)
         surf._edgecolors2d = surf._edgecolor3d
         surf._facecolors2d = surf._facecolor3d
-
 
     ax.plot(p_0.x, p_0.y, p_0.z, 'xk', label=r"$\mathrm{p}_g$")
     ax.plot(p_f.x, p_f.y, p_f.z, 'xb', label=r"$\mathrm{p}_g'$")
@@ -179,11 +192,12 @@ def plane_rotation():
     draw_plane(n_0, p_0, color=[1,0,0], label=r"$\underline{\pi}$")
     draw_plane(n_f, p_f, color=[0,0,1], label=r"$\underline{\pi}_g\prime$")
 
-    plt.legend(loc="center", bbox_to_anchor=(1.0, 0.5))
-    plt.tight_layout()
+    # plt.legend(loc="center left", bbox_to_anchor=(1.0, 0.5))
+    # plt.tight_layout(rect=(.05, .05, .95, .95))
+    plt.tight_layout(rect=(.01, .01, .99, .99))
     plt.show()
 
 
 if __name__ == '__main__':
-    # main()
+    main()
     plane_rotation()
