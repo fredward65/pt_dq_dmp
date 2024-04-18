@@ -113,7 +113,8 @@ def main():
             ax.plot([p_i.x for p_i in p], [p_i.y for p_i in p], [p_i.z for p_i in p], label=txt, color=col, linewidth=.75)
             ax.quiver(p_0.x, p_0.y, p_0.z, dp_0.x, dp_0.y, dp_0.z, length=.1, color=col, linewidth=.75)
             ax.quiver(p_f.x, p_f.y, p_f.z, n_c.x, n_c.y, n_c.z, length=.2, color=col, linewidth=.75)
-    ax.plot(p_f.x, p_f.y, p_f.z, 'xk', markersize=5, zorder=np.inf, label=r"$\mathbf{p}_t$")
+    ax.plot(p_0.x, p_0.y, p_0.z, 'ok', markersize=3, zorder=np.inf, label=r"$\mathbf{p}_0$")
+    ax.plot(p_f.x, p_f.y, p_f.z, 'xk', markersize=5, zorder=np.inf, label=r"$\mathbf{p}_\mathrm{t}$")
     
     ax.legend(loc="upper center", ncol=2, bbox_to_anchor=(0.5, .01), fontsize=7)
     fig.tight_layout()

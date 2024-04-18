@@ -2,7 +2,6 @@
 
 import numpy as np
 from custom_tools.math_tools import *
-from custom_tools.projectile_launching import gen_movement
 from custom_tools.pt_dq_dmp import PTDQDMP
 from dual_quaternions import DualQuaternion
 from matplotlib import pyplot as plt
@@ -60,17 +59,7 @@ def gen_data():
 
 def main():
     # Generate movement data
-    # t_vec, dq_vec = gen_data()
-
-    t_vec, dq_vec = gen_movement(r=.40, n=100)    # .35
-    p_0 = Quaternion(vector=[-.65, -.05, .40])      # -.35 .35 .45 
-    q_0 = Quaternion(axis=[0, 0, 1], angle=0.00 * np.pi)
-    dq_0 = DualQuaternion.from_quat_pose_array(np.append(q_0.elements, p_0.elements[1:]))
-    dq_vec = np.array([dq_0 * dq_i for dq_i in dq_vec], dtype=DualQuaternion)
-    
-    p_r = Quaternion(axis=[0, 0, 1], angle=-0.75 * np.pi)
-    p_t = Quaternion(vector=[0.70, 0.00, 0.02])
-    p_t = p_r.rotate(p_t)
+    t_vec, dq_vec = gen_data()
 
     # DMP Model
     dmp_obj = PTDQDMP(n=100, alpha_y=20)
@@ -164,9 +153,9 @@ def main():
         axs[i][0].yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
         min_lim = np.round(np.min(dq_rec_npa[:, i + 4]), 1) - .1
         max_lim = np.round(np.max(dq_rec_npa[:, i + 4]), 1) + .1
-        axs[i][1].hlines(dq_vec_npa[-1, i + 4], 0, t_rec[-1], [(1, 0, 0)], "dotted", linewidth=.75, label=r"$\underline{\mathbf{q}}_g$" if i == 3 else None)
-        axs[i][1].plot(t_rec, dq_rec_npa[:, i + 4], linewidth=.75, label=r"$\underline{\mathbf{q}}_{f}$" if i == 3 else None)
-        axs[i][1].plot(t_vec, dq_vec_npa[:, i + 4], "--k", linewidth=1, label=r"$\underline{\mathbf{q}}_{d}$" if i == 3 else None)
+        axs[i][1].hlines(dq_vec_npa[-1, i + 4], 0, t_rec[-1], [(1, 0, 0)], "dotted", linewidth=.75, label=r"$\underline{\mathbf{q}}_\mathrm{g}$" if i == 3 else None)
+        axs[i][1].plot(t_rec, dq_rec_npa[:, i + 4], linewidth=.75, label=r"$\underline{\mathbf{q}}_\mathrm{f}$" if i == 3 else None)
+        axs[i][1].plot(t_vec, dq_vec_npa[:, i + 4], "--k", linewidth=1, label=r"$\underline{\mathbf{q}}_\mathrm{d}$" if i == 3 else None)
         axs[i][1].set_ylim(min_lim, max_lim)
         axs[i][1].yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
         if (i == 3):
@@ -198,7 +187,7 @@ def main():
     ax_3d.zaxis._axinfo["grid"]['linewidth'] = .5
     ax_3d.tick_params(axis='both', which='major', labelsize=5, pad=-2, grid_alpha=1)
 
-    # fig_synthrec.savefig("./src/figures/figure_dqdmp.png", dpi=200, bbox_inches="tight")
+    fig_synthrec.savefig("./src/figures/figure_dqdmp.png", dpi=200, bbox_inches="tight")
 
     plt.show()
 

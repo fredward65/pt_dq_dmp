@@ -2,7 +2,7 @@
 
 import numpy as np
 from custom_tools.math_tools import *
-from custom_tools.projectile_launching import gen_movement
+from custom_tools.projectile_throwing import gen_movement
 from custom_tools.pt_dq_dmp import PTDQDMP
 from dual_quaternions import DualQuaternion
 from matplotlib import pyplot as plt, ticker as tkr

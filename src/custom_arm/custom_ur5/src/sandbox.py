@@ -5,7 +5,7 @@ import pickle
 import rospy
 import time
 from custom_tools.arm_manager import ArmManager
-from custom_tools.projectile_launching import gen_movement
+from custom_tools.projectile_throwing import gen_movement
 from custom_tools.pt_dq_dmp import PTDQDMP
 from dual_quaternions import DualQuaternion
 from pyquaternion import Quaternion

@@ -4,7 +4,7 @@ from dual_quaternions import DualQuaternion
 from pyquaternion import Quaternion
 from .math_tools import *
 from .math_tools.dq_tools import next_dq_from_twist, twist_from_dq_list, vel_from_twist, edq_from_dq, edq_from_dq_list
-from .projectile_launching import ProjectileLaunching
+from .projectile_throwing import ProjectileLaunching
 
 
 class DQDMP(object):
