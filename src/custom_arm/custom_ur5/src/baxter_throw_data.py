@@ -44,6 +44,7 @@ def main():
     dq_r = data['dqtrue']
 
     print(p_t)
+    print(data['params'])
 
     fig = plt.figure(figsize=(3, 2.5), layout='tight')
     axs = fig.subplots(4, 2)
@@ -128,7 +129,7 @@ def main():
 
     plt.show()
 
-    fig_3d.savefig("./src/figures/figure_baxterdemo3d.png", dpi=200, bbox_inches="tight")
+    # fig_3d.savefig("./src/figures/figure_baxterdemo3d.png", dpi=200, bbox_inches="tight")
 
 
 if __name__ == '__main__':
