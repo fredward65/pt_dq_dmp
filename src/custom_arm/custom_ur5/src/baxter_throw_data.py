@@ -32,7 +32,7 @@ def main():
     data = np.load(file_path + file_name)
     print(data.files)
 
-    p_t = Quaternion(vector=data['target'])
+    p_target = Quaternion(vector=data['target'])
     tau = data['params'][-1]
     t_d = data['td']
     dqg_d = data['goal']
@@ -43,7 +43,7 @@ def main():
     dq_t = data['dqt']
     dq_r = data['dqtrue']
 
-    print(p_t)
+    print(p_target)
     print(data['params'])
 
     fig = plt.figure(figsize=(3, 2.5), layout='tight')
@@ -105,15 +105,17 @@ def main():
     ax_3d.plot(p_t[:, 0], p_t[:, 1], 0*p_t[:, 2] - .5, 'k', linewidth=1, alpha=0.25)
     ax_3d.plot(p_r[:, 0], p_r[:, 1], p_r[:, 2], 'r', linewidth=1)
     ax_3d.plot(p_r[:, 0], p_r[:, 1], 0*p_r[:, 2] - .5, 'k', linewidth=1, alpha=0.25)
+    ax_3d.plot(p_target.x, p_target.y, p_target.z, 'or', markersize=2, label=r'$\mathbf{p}_t$')
+    ax_3d.plot(p_target.x, p_target.y, 0*p_target.z - .5, 'ok', alpha=0.25, markersize=2)
     draw_axes(ax_3d, dq_d_[::10], .075)
     draw_axes(ax_3d, dq_f_[::20], .075)
     draw_axes(ax_3d, dq_t_[::20], .075)
     draw_axes(ax_3d, dq_r_[::20], .075)
 
     ax_3d.set_proj_type('ortho')
-    ax_3d.set_xlim([-.5, 1])
-    ax_3d.set_ylim([-.25, 1.25])
-    ax_3d.set_zlim([-.5, 1])
+    ax_3d.set_xlim([-.5, 1.50])
+    ax_3d.set_ylim([-.25, 1.75])
+    ax_3d.set_zlim([-.5, 1.50])
     ax_3d.set_xlabel(r'$x$', fontsize=12)
     ax_3d.set_ylabel(r'$y$', fontsize=12)
     ax_3d.set_zlabel(r'$z$', fontsize=12)
@@ -126,10 +128,11 @@ def main():
     ax_3d.tick_params(axis='both', which='major', labelsize=5, pad=-2, grid_alpha=1)
     ax_3d.view_init(elev=30, azim=45)
     ax_3d.set_box_aspect((1, 1, 1), zoom=.90)
+    fig_3d.legend(loc="lower center", fontsize=6)
 
     plt.show()
 
-    # fig_3d.savefig("./src/figures/figure_baxterdemo3d.png", dpi=200, bbox_inches="tight")
+    fig_3d.savefig("./src/figures/figure_baxterdemo3d.png", dpi=200, bbox_inches="tight")
 
 
 if __name__ == '__main__':

@@ -24,7 +24,7 @@ def main():
 
     # Set Cartesian target
     p_r = Quaternion(axis=[0, 0, 1], angle=-1.00 * np.pi)
-    p_t = Quaternion(vector=[1.00, 0.00, 0.02])
+    p_t = Quaternion(vector=[0.60, 0.60, 0.02])
     p_t = p_r.rotate(p_t)
 
     # DMP Model
