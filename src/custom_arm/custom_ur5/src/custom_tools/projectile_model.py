@@ -2,7 +2,7 @@
 
 import numpy as np
 from pyquaternion import Quaternion
-from math_tools import quat_rot
+from .math_tools import quat_rot
 
 
 class ProjectileModel(object):
@@ -120,7 +120,7 @@ def main():
     fig.tight_layout()
     fig.subplots_adjust(left=0, bottom=0)
 
-    fig.savefig("./src/figures/figure_pmdem.png", dpi=200, bbox_inches="tight")
+    # fig.savefig("./src/figures/figure_pmdem.png", dpi=200, bbox_inches="tight")
 
     plt.subplots_adjust(left=0, bottom=.25, right=1, top=1)
     plt.show()

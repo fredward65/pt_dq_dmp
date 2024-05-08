@@ -4,7 +4,7 @@ from dual_quaternions import DualQuaternion
 from pyquaternion import Quaternion
 from .math_tools import *
 from .math_tools.dq_tools import next_dq_from_twist, twist_from_dq_list, vel_from_twist, edq_from_dq, edq_from_dq_list
-from .projectile_throwing import ProjectileLaunching
+from .projectile_throwing import ProjectileThrowing
 
 
 class DQDMP(object):
@@ -223,7 +223,7 @@ class DQDMP(object):
         return dq_arr, tw_arr
 
 
-class PTDQDMP(DQDMP, ProjectileLaunching):
+class PTDQDMP(DQDMP, ProjectileThrowing):
     """
     A class for computing Projectile Throwing Dynamic Movement Primitives (DMP)
     from full pose Dual Quaternion data
@@ -237,7 +237,7 @@ class PTDQDMP(DQDMP, ProjectileLaunching):
         @alpha_y: Damping coefficient
         """
         super().__init__(n=n, alpha_y=alpha_y)
-        ProjectileLaunching.__init__(self)
+        ProjectileThrowing.__init__(self)
 
     def adapt_poses(self, p_t:Quaternion) -> 'tuple[DualQuaternion, DualQuaternion, float]':
         """

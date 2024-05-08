@@ -5,7 +5,7 @@ from dual_quaternions import DualQuaternion
 from pyquaternion import Quaternion
 
 
-class ProjectileLaunching(object):
+class ProjectileThrowing(object):
     def __init__(self):
         self.ag = Quaternion(vector=[0, 0, -9.80665])
 
@@ -79,7 +79,7 @@ def main():
     np.set_printoptions(precision=3, suppress=True)
     plt.rcParams.update({'text.usetex': True, 'font.size': 7, 'figure.dpi': 150})
 
-    pl = ProjectileLaunching()
+    pl = ProjectileThrowing()
 
     p_0 = Quaternion(vector=[0, 0, 0])
 
@@ -139,7 +139,7 @@ def plane_rotation():
     np.set_printoptions(precision=3, suppress=True)
     plt.rcParams.update({'text.usetex': True, 'font.size': 7, 'figure.dpi': 150})
 
-    pl = ProjectileLaunching()
+    pl = ProjectileThrowing()
 
     p_0 = Quaternion(vector=[.5, .5, 1])
     n_0 = Quaternion(vector=[0, -1, 0])
@@ -219,5 +219,5 @@ def plane_rotation():
 
 
 if __name__ == '__main__':
-    # main()
+    main()
     plane_rotation()

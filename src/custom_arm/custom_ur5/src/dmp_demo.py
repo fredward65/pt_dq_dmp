@@ -167,10 +167,10 @@ def main():
     ax_3d.zaxis._axinfo["grid"]['linewidth'] = .1
     ax_3d.tick_params(axis='both', which='major', labelsize=7, pad=-2, grid_alpha=1)
 
-    fig_synth.savefig("./src/figures/figure_syntheticdemo.png", dpi=200, bbox_inches="tight")
-    fig_synth3d.savefig("./src/figures/figure_syntheticdemo3d.png", dpi=200, bbox_inches="tight")
-    fig_rec.savefig("./src/figures/figure_syntheticreconstruction.png", dpi=200, bbox_inches="tight")
-    fig_rec3d.savefig("./src/figures/figure_syntheticreconstruction3d.png", dpi=200, bbox_inches="tight")
+    # fig_synth.savefig("./src/figures/figure_syntheticdemo.png", dpi=200, bbox_inches="tight")
+    # fig_synth3d.savefig("./src/figures/figure_syntheticdemo3d.png", dpi=200, bbox_inches="tight")
+    # fig_rec.savefig("./src/figures/figure_syntheticreconstruction.png", dpi=200, bbox_inches="tight")
+    # fig_rec3d.savefig("./src/figures/figure_syntheticreconstruction3d.png", dpi=200, bbox_inches="tight")
 
     plt.show()
 

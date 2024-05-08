@@ -6,7 +6,7 @@ from dual_quaternions import DualQuaternion
 from custom_tools.math_tools import *
 from custom_tools.math_tools.dq_tools import twist_from_dq_list, vel_from_twist
 from custom_tools.pt_dq_dmp import PTDQDMP
-from custom_tools.projectile_throwing import gen_movement, ProjectileLaunching
+from custom_tools.projectile_throwing import gen_movement, ProjectileThrowing
 from matplotlib.ticker import MultipleLocator
 from mpl_toolkits.mplot3d import Axes3D
 from pyquaternion import Quaternion
@@ -53,7 +53,7 @@ def main():
     p_t = Quaternion(vector=[1.00, 0.00, 0.02])
     p_t = p_r.rotate(p_t)
 
-    p_l_obj = ProjectileLaunching()
+    p_l_obj = ProjectileThrowing()
 
     dmp_obj = PTDQDMP(n=100, alpha_y=20)
     _, p_vec = pose_from_dq(dq_vec)
