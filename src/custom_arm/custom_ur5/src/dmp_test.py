@@ -187,7 +187,7 @@ def main():
     ax_3d.zaxis._axinfo["grid"]['linewidth'] = .5
     ax_3d.tick_params(axis='both', which='major', labelsize=5, pad=-2, grid_alpha=1)
 
-    fig_synthrec.savefig("./src/figures/figure_dqdmp.png", dpi=200, bbox_inches="tight")
+    # fig_synthrec.savefig("./src/figures/figure_dqdmp.png", dpi=200, bbox_inches="tight")
 
     plt.show()
 

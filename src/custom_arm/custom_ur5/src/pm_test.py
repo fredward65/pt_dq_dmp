@@ -149,7 +149,7 @@ def main():
     ax.view_init(elev=20, azim=-160)
     plt.legend(ncols=5, loc='lower center', bbox_to_anchor=(.5, 1.), fontsize=6)
     plt.tight_layout()
-    fig.savefig("./src/figures/figure_syntheticthrow3D.png", dpi=200, bbox_inches="tight")
+    # fig.savefig("./src/figures/figure_syntheticthrow3D.png", dpi=200, bbox_inches="tight")
     plt.show()
 
 
