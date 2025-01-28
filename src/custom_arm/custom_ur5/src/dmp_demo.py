@@ -88,7 +88,9 @@ def main():
     # fig_synth.legend(loc="upper left", bbox_to_anchor=(.975, .93))
 
     ax_3d.plot(p_vec[:, 0], p_vec[:, 1], p_vec[:, 2], linewidth=1)
-    draw_axes(ax_3d, dq_vec[::30], .03)
+    ax_3d.plot(p_vec[0, 0], p_vec[0, 1], p_vec[0, 2], 'm*', markersize=5, zorder=1000, label=r'$\underline{\mathbf{q}}_0$')
+    ax_3d.plot(p_vec[-1, 0], p_vec[-1, 1], p_vec[-1, 2], 'mo', markersize=3, zorder=1000, label=r'$\underline{\mathbf{q}}_\mathrm{g}$')
+    draw_axes(ax_3d, dq_vec[::31], .03)
     ax_3d.set_proj_type('ortho')
     ax_3d.set_xlim([-0.75, -0.25])
     ax_3d.set_ylim([-0.25,  0.25])
@@ -106,6 +108,7 @@ def main():
     ax_3d.yaxis._axinfo["grid"]['linewidth'] = .1
     ax_3d.zaxis._axinfo["grid"]['linewidth'] = .1
     ax_3d.tick_params(axis='both', which='major', labelsize=7, pad=-2, grid_alpha=1)
+    fig_synth3d.legend(ncols=2, loc="upper center", bbox_to_anchor=(0.5, 0.93))
     
     # Plot reconstructed data
     fig_rec = plt.figure(figsize=(3, 3), constrained_layout=True)
@@ -147,6 +150,8 @@ def main():
 
     # ax_3d.plot(p_rec[:, 0], p_rec[:, 1], 0 * p_rec[:, 2], 'k', linewidth=1, alpha=0.5)
     ax_3d.plot(p_rec[:, 0], p_rec[:, 1], p_rec[:, 2], linewidth=1)
+    ax_3d.plot(p_rec[0, 0], p_rec[0, 1], p_rec[0, 2], 'm*', markersize=5, zorder=1000, label=r'$\underline{\mathbf{q}}_0$')
+    ax_3d.plot(p_rec[-1, 0], p_rec[-1, 1], p_rec[-1, 2], 'mo', markersize=3, zorder=1000, label=r'$\underline{\mathbf{q}}_\mathrm{g}$')
     # ax_3d.plot(p_vec[:, 0], p_vec[:, 1], p_vec[:, 2], '--k', linewidth=1)
     draw_axes(ax_3d, dq_rec[::30], .03)
     ax_3d.set_proj_type('ortho')
@@ -166,11 +171,12 @@ def main():
     ax_3d.yaxis._axinfo["grid"]['linewidth'] = .1
     ax_3d.zaxis._axinfo["grid"]['linewidth'] = .1
     ax_3d.tick_params(axis='both', which='major', labelsize=7, pad=-2, grid_alpha=1)
+    fig_rec3d.legend(ncols=2, loc="upper center", bbox_to_anchor=(0.5, 0.93))
 
-    # fig_synth.savefig("./src/figures/figure_syntheticdemo.png", dpi=200, bbox_inches="tight")
-    # fig_synth3d.savefig("./src/figures/figure_syntheticdemo3d.png", dpi=200, bbox_inches="tight")
-    # fig_rec.savefig("./src/figures/figure_syntheticreconstruction.png", dpi=200, bbox_inches="tight")
-    # fig_rec3d.savefig("./src/figures/figure_syntheticreconstruction3d.png", dpi=200, bbox_inches="tight")
+    fig_synth.savefig("./src/figure_syntheticdemo.png", dpi=200, bbox_inches="tight")
+    fig_synth3d.savefig("./src/figure_syntheticdemo3d.png", dpi=200, bbox_inches="tight")
+    fig_rec.savefig("./src/figure_syntheticreconstruction.png", dpi=200, bbox_inches="tight")
+    fig_rec3d.savefig("./src/figure_syntheticreconstruction3d.png", dpi=200, bbox_inches="tight")
 
     plt.show()
 
